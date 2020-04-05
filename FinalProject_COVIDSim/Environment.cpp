@@ -48,19 +48,18 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 	ScheduleEventIn(_stepSize, new MoveEvent(this));
 }
 
-
-struct NodeTracker {
-	Agent* _aRef;
-	NodeTracker* _next;
-	NodeTracker(Agent* a) {
-		_aRef = a;
-		_next = nullptr;
-	}
-};
 class AgentTracker {
 public:
 	unsigned int _nodeCounter;
-
+	
+	struct NodeTracker {
+		Agent* _aRef;
+		NodeTracker* _next;
+		NodeTracker(Agent* a) {
+			_aRef = a;
+			_next = nullptr;
+		}
+	};
 	NodeTracker* _head;
 
 	void AddAgent(Agent* a) {
@@ -85,46 +84,84 @@ public:
 	}
 };
 
-
 void Environment::MoveAgents()
 {
 	for (int r = 0; r < (1 + ((_Ymax - 1) / _cellResolution)); r++) {
 		for (int c = 0; c < (1 + ((_Xmax - 1) / _cellResolution)); c++) {
 			if (_cellCounter[r][c] > 1) {
-				CellNode* curr = _cell[r][c];
 				AgentTracker InfectedAgents;
 				AgentTracker HealthyAgents;
-				while (curr != nullptr) {
-					if (curr->_aRef->_agentState->GetAgentSubState() == Healthy)
-						HealthyAgents.AddAgent(curr->_aRef);
-					else if (curr->_aRef->_agentState->GetAgentSubState() == Infected)
-						InfectedAgents.AddAgent(curr->_aRef);
+				CellNode* curr = _cell[r][c];
+				bool doLoop = true;	// to state whether to change curr cell
+				//bool loop = true;	// to state whether or not to interate through cell 
+				short int i = 0;	// counter of number of do-while loops 
+				do {
+					// Finding Infected and Healthy Agents and saving reference
+					while (curr != nullptr /*&& loop*/) {
+						if (curr->_aRef->_agentState->GetAgentSubState() == Healthy)
+							HealthyAgents.AddAgent(curr->_aRef);
+						else if (curr->_aRef->_agentState->GetAgentSubState() == Infected)
+							InfectedAgents.AddAgent(curr->_aRef);
 
-					curr = curr->_next;
-				}
+						curr = curr->_next;
+					}
+					//loop = false; // until indicated, dont loop through cell
+
+					// Searching 1 cell out to determine affects of other agents on currents and vis versa
+					switch (i) {
+					case 0:
+						if (c+1 < (1 + ((_Xmax - 1) / _cellResolution)) ? _cellCounter[r][c+1] > 0 : false) {
+							//loop = true;
+							curr = _cell[r][c + 1];
+						}
+						break;
+					case 1:
+						if (r + 1 < (1 + ((_Ymax - 1) / _cellResolution)) ? _cellCounter[r + 1][c] > 0 : false) {
+							//loop = true;
+							curr = _cell[r + 1][c];
+						}
+						break;
+					case 2:
+						if (c + 1 < (1 + ((_Xmax - 1) / _cellResolution)) && r + 1 < (1 + ((_Ymax - 1) / _cellResolution)) ? _cellCounter[r + 1][c + 1] > 0 : false) {
+							//loop = true;
+							curr = _cell[r + 1][c + 1];
+						}
+						break;
+					case 3:
+						if (c - 1 > 0  && r + 1 < (1 + ((_Ymax - 1) / _cellResolution)) ? _cellCounter[r][c + 1] > 0 : false) {
+							//loop = true;
+							curr = _cell[r][c + 1];
+						}
+						break;
+					case 4:
+						doLoop = false;
+						break;
+					default:
+						break;
+					}
+					i++; // next test
+				} while (doLoop);
+				// If there is infected and healthy agents
 				if (HealthyAgents._nodeCounter > 0 && InfectedAgents._nodeCounter > 0) {
-					float distance = 0;
-					Parameter l;
-					NodeTracker* curr_H = HealthyAgents.GetHead();
-					NodeTracker* curr_I = InfectedAgents.GetHead();
+					Distance distance(InfectedAgents._nodeCounter);
+					AgentTracker::NodeTracker* curr_H = HealthyAgents.GetHead();
+					AgentTracker::NodeTracker* curr_I = InfectedAgents.GetHead();
 
 					// Calculating the distance between healthy and infected
 					while (curr_H != nullptr) {
 						while (curr_I != nullptr) {
 							// Calculating Distance
-							distance = sqrtf((curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) *
+							distance.AddDistance(sqrtf((curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) *
 											(curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) +
 											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y) *
-											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y))
-											+ distance;
+											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y)));
 							curr_I = curr_I->_next;
 						}
-						l._distance = distance;
-						curr_H->_aRef->_agentState->SetParameters(l);
+						curr_H->_aRef->_agentState->SetParameters(&distance);
 						curr_H->_aRef->_agentState->StateTransition(curr_H->_aRef);
 						curr_I = InfectedAgents.GetHead();
 						curr_H = curr_H->_next;
-						distance = 0;
+						distance.resetIndex(); // resets index on float[] for next Healthy agent
 					}
 				}
 			}

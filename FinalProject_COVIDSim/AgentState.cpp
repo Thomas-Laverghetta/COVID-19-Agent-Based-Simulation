@@ -36,8 +36,9 @@ void Agent::AgentState::SetDiseaseInfluence(DiseaseInfluence* DI)
 	_DI = DI;
 }
 
-void Agent::AgentState::SetParameters(Parameter list)
+void Agent::AgentState::SetParameters(Parameter * list)
 {
+	delete _list; // deleting previous dynamic object to point to new object
 	_list = list;
 }
 

@@ -3,7 +3,7 @@
 #include <string>
 #include "SimObj.h"
 
-// Agents States
+// Agents highlevel States
 enum SIR_States { Healthy, Infected, Other };
 
 // Location Data Structure
@@ -23,8 +23,27 @@ public:
 };
 
 // Parameter Object to calculate probability of state transition
-struct Parameter {
-	float _distance = 0;
+class Parameter {
+public:
+	unsigned int _numParameters{ 0 };
+};
+class Distance : public Parameter {
+public:
+	float* _distance = nullptr;
+	unsigned int _numDistances = 0;
+	unsigned int _index = 0;
+	Distance(unsigned int numDistance) {
+		_distance = new float[numDistance];
+		_numDistances = numDistance;
+		_numParameters = 1;
+	}
+	void AddDistance(float dist) {
+		_distance[_index] = dist;
+		_index++;
+	}
+	void resetIndex() {
+		_index = 0;
+	}
 };
 
 // Agents
@@ -33,7 +52,6 @@ public:
 	// Base for all states
 	class AgentState {
 	public:
-		AgentState() {};
 		virtual void StateTransition(Agent* a) = 0;
 
 		std::string GetAgentState();
@@ -46,12 +64,12 @@ public:
 
 		static void SetDiseaseInfluence(DiseaseInfluence* DI);
 
-		void SetParameters(Parameter list);
+		void SetParameters(Parameter * list);
 	protected:
 		SIR_States _highLevelState;
 		std::string _lowLevelState;
 		static DiseaseInfluence* _DI;
-		Parameter _list;
+		Parameter* _list;
 	};
 	Agent(Location loc, AgentState* initialState, unsigned int age);
 
@@ -78,7 +96,7 @@ public:
 	void Execute();
 private:
 	Agent* _a;
-	
+
 };
 
 // Event to transition to this state
@@ -110,21 +128,40 @@ public:
 };
 
 //-----------------------Other States-------------------------------------
-
-// Event to transition to this State
-class OtherEvent {
+class OtherState : public Agent::AgentState {
 public:
-	OtherEvent(Agent* a);
+	OtherState() {
+		_highLevelState = Other;
+	}
 
-	class OtherState : public Agent::AgentState {
+	// Event to transition to this State
+	class Event : public EventAction{
 	public:
-		OtherState() {
-			_highLevelState = Other;
-		}
-		virtual void StateTransition(Agent* a);
+		Event(Agent* a);
 
+		void Execute();
 	};
-	void Execute();
+
+	virtual void StateTransition(Agent* a);
+
+};
+
+class TestOtherState : public OtherState {
+public:
+	TestOtherState() {
+		_highLevelState = Other;
+	}
+
+	// Event to transition to this State
+	class Event : public EventAction {
+	public:
+		Event(Agent* a);
+
+		void Execute();
+	};
+
+	virtual void StateTransition(Agent* a);
+
 };
 #endif
 
