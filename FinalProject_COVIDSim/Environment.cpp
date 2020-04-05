@@ -35,13 +35,13 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 	_agentRef = new Agent*[numAgents];
 	for (int i = 0; i < numAgents-numInfected; i++) {
 		coordinate._x = rand() % Xmax; coordinate._y = rand() % Ymax; // randoming choosing location with in domain
-		_agentRef[i] = new Agent(coordinate, new HealthyEvent::HealthyState, rand() % 100 + 1);
+		_agentRef[i] = new Agent(coordinate, new HealthyState, rand() % 100 + 1);
 	}
 
 	// Infection Seed
 	for (int i = 1; i < numInfected; i++) {
 		coordinate._x = rand() % Xmax; coordinate._y= rand() % Ymax; 
-		_agentRef[numAgents - numInfected + i] = new Agent(coordinate, new InfectionEvent::InfectedState, rand() % 100 + 1);
+		_agentRef[numAgents - numInfected + i] = new Agent(coordinate, new InfectedState, rand() % 100 + 1);
 	}
 
 	// Scheduling the first event

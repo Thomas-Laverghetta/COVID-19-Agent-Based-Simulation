@@ -83,48 +83,60 @@ public:
 };
 
 //-----------------------Healthy States-------------------------------------
-// event to transition to this state
-class HealthyEvent : public EventAction {
+class HealthyState : public Agent::AgentState {
 public:
-	HealthyEvent(Agent* a) { _a = a; }
-	class HealthyState : public Agent::AgentState {
+	HealthyState() { _highLevelState = Healthy; _lowLevelState = "Healthy"; }
+	
+	// Event to transition to this state
+	class StateTransitionEvent : public EventAction {
 	public:
-		HealthyState() { _highLevelState = Healthy; _lowLevelState = "Healthy"; }
-		virtual void StateTransition(Agent* a); // Will determine the next state and call event
-	};
-	// Execute Event
-	void Execute();
-private:
-	Agent* _a;
+		StateTransitionEvent(Agent* a) { _a = a; }
 
+		// Execute Event
+		void Execute();
+	private:
+		Agent* _a;
+
+	};
+	virtual void StateTransition(Agent* a); // Will determine the next state and call event
 };
 
-// Event to transition to this state
-class StandardHealthEvent : public EventAction {
+// Example of Healthy state
+class StandardHealthyState : public HealthyState {
 public:
-	StandardHealthEvent(Agent* a) : _a(a) {}
-	// State In Accordance with event
-	class StandardHealthyState : public HealthyEvent::HealthyState {
-	public:
-		StandardHealthyState() { _lowLevelState = "Standard_Health"; }
-		void StateTransition(Agent* a);
-	};
-	void Execute();
-private:
-	Agent* _a;
-};
+	StandardHealthyState() { _lowLevelState = "Standard_Health"; }
 
+	// Event to transition to this state
+	class StateTransitionEvent : public EventAction {
+	public:
+		StateTransitionEvent(Agent* a) { _a = a; }
+
+		// Execute Event
+		void Execute();
+	private:
+		Agent* _a;
+
+	};
+	void StateTransition(Agent* a);
+};
 //-----------------------Infected States-------------------------------------
-// Event to transition to this state
-class InfectionEvent : public EventAction {
+class InfectedState : public Agent::AgentState {
 public:
-	InfectionEvent(Agent* a);
-	class InfectedState : public Agent::AgentState {
+	InfectedState() { _highLevelState = Infected; _lowLevelState = "Infected"; }
+	
+	// Event to transition to this state
+	class StateTransitionEvent : public EventAction {
 	public:
-		InfectedState() { _highLevelState = Infected; _lowLevelState = "Infected"; }
-		virtual void StateTransition(Agent* a);
+		StateTransitionEvent(Agent* a) { _a = a; }
+
+		// Execute Event
+		void Execute();
+	private:
+		Agent* _a;
+
 	};
-	void Execute();
+
+	virtual void StateTransition(Agent* a);
 };
 
 //-----------------------Other States-------------------------------------
@@ -135,9 +147,9 @@ public:
 	}
 
 	// Event to transition to this State
-	class Event : public EventAction{
+	class StateTransitionEvent : public EventAction{
 	public:
-		Event(Agent* a);
+		StateTransitionEvent(Agent* a);
 
 		void Execute();
 	};
@@ -153,9 +165,9 @@ public:
 	}
 
 	// Event to transition to this State
-	class Event : public EventAction {
+	class StateTransitionEvent : public EventAction {
 	public:
-		Event(Agent* a);
+		StateTransitionEvent(Agent* a);
 
 		void Execute();
 	};
