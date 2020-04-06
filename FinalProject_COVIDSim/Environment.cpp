@@ -154,7 +154,7 @@ void Environment::MoveAgents()
 							distance.AddDistance(sqrtf((curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) *
 											(curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) +
 											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y) *
-											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y)));
+											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y)), curr_I->_aRef->_agentState->GetAgentState());
 							curr_I = curr_I->_next;
 						}
 						curr_H->_aRef->_agentState->SetParameters(&distance);

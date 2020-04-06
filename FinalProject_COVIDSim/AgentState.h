@@ -25,20 +25,27 @@ public:
 // Parameter Object to calculate probability of state transition
 class Parameter {
 public:
-	unsigned int _numParameters{ 0 };
+	Parameter(unsigned int numPara) : _numParameters(numPara) {}
+protected:
+	unsigned int _numParameters;
 };
 class Distance : public Parameter {
 public:
 	float* _distance = nullptr;
+
+	// allows for different levels of exposer pending on the state of infection (state)
+	std::string * _highLevelState; 
 	unsigned int _numDistances = 0;
 	unsigned int _index = 0;
-	Distance(unsigned int numDistance) {
-		_distance = new float[numDistance];
+	Distance(unsigned int numDistance) : Parameter{2} {
+		_distance = new float[numDistance];				// Para 1
+		_highLevelState = new std::string[numDistance]; // para 2
 		_numDistances = numDistance;
 		_numParameters = 1;
 	}
-	void AddDistance(float dist) {
+	void AddDistance(float dist, std::string state) {
 		_distance[_index] = dist;
+		_highLevelState[_index] = state;
 		_index++;
 	}
 	void resetIndex() {
