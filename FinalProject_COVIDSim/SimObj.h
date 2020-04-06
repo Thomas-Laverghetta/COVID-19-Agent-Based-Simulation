@@ -1,6 +1,6 @@
 #ifndef SIMOBJ_H
 #define SIMOBJ_H
-#include "..\..\..\GitHub\SimulationExecutive\SimulationExecutive.h"
+#include "SimulationExecutive.h"
 
 typedef double Time;
 

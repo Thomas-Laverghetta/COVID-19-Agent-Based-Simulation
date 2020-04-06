@@ -46,24 +46,25 @@ void Agent::AgentState::SetParameters(Parameter * list)
 
 //---------------------HEALTHY STATES--------------------------
 
-void HealthyEvent::Execute()
+void HealthyState::StateTransitionEvent::Execute()
 {
 	delete _a->_agentState;
 	_a->_agentState = new HealthyState;
 	_a->_agentState->StateTransition(_a);
 }
-void HealthyEvent::HealthyState::StateTransition(Agent* a)
+void HealthyState::StateTransition(Agent* a)
 {
+
 }
 
 //// Example Healthy State
-void StandardHealthEvent::Execute()
+void StandardHealthyState::StateTransitionEvent::Execute()
 {
 	delete _a->_agentState;
 	_a->_agentState = new StandardHealthyState;
 	_a->_agentState->StateTransition(_a);
 }
-void StandardHealthEvent::StandardHealthyState::StateTransition(Agent* a)
+void StandardHealthyState::StateTransition(Agent* a)
 {
 }
 
@@ -71,9 +72,17 @@ void StandardHealthEvent::StandardHealthyState::StateTransition(Agent* a)
 
 
 //-----------------------Infected States-------------------------------------
-
-void InfectionEvent::InfectedState::StateTransition(Agent* a)
+void InfectedState::StateTransitionEvent::Execute()
+{
+	delete _a->_agentState;
+	_a->_agentState = new InfectedState;
+	_a->_agentState->StateTransition(_a);
+}
+void InfectedState::StateTransition(Agent* a)
 {
 }
 
-
+//-----------------------Other States-------------------------------------
+void OtherState::StateTransition(Agent* a)
+{
+}
