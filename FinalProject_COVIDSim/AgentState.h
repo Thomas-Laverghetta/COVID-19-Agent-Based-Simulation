@@ -86,6 +86,7 @@ public:
 	unsigned int _id;
 	static unsigned int _nextId;
 
+	float _infectionLevels; 	// how infected they are
 	AgentState* _agentState;
 };
 
