@@ -35,13 +35,13 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 	_agentRef = new Agent*[numAgents];
 	for (int i = 0; i < numAgents-numInfected; i++) {
 		coordinate._x = rand() % Xmax; coordinate._y = rand() % Ymax; // randoming choosing location with in domain
-		_agentRef[i] = new Agent(coordinate, new HealthyState, rand() % 100 + 1);
+		_agentRef[i] = new Agent(coordinate, new HealthyState(_agentRef[i]), rand() % 100 + 1);
 	}
 
 	// Infection Seed
 	for (int i = 1; i < numInfected; i++) {
 		coordinate._x = rand() % Xmax; coordinate._y= rand() % Ymax; 
-		_agentRef[numAgents - numInfected + i] = new Agent(coordinate, new InfectedState, rand() % 100 + 1);
+		_agentRef[numAgents - numInfected + i] = new Agent(coordinate, new InfectedState(_agentRef[numAgents - numInfected + i]), rand() % 100 + 1);
 	}
 
 	// Scheduling the first event
@@ -154,11 +154,12 @@ void Environment::MoveAgents()
 							distance.AddDistance(sqrtf((curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) *
 											(curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) +
 											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y) *
-											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y)), curr_I->_aRef->_agentState->GetAgentState());
+											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y)), 
+											curr_I->_aRef->_agentState->GetAgentState());
 							curr_I = curr_I->_next;
 						}
 						curr_H->_aRef->_agentState->SetParameters(&distance);
-						curr_H->_aRef->_agentState->StateTransition(curr_H->_aRef);
+						curr_H->_aRef->_agentState->StateTransition();
 						curr_I = InfectedAgents.GetHead();
 						curr_H = curr_H->_next;
 						distance.resetIndex(); // resets index on float[] for next Healthy agent
