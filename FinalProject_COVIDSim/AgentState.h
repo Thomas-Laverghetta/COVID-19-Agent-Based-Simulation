@@ -59,7 +59,9 @@ public:
 	// Base for all states
 	class AgentState {
 	public:
-		virtual void StateTransition(Agent* a) = 0;
+		AgentState(Agent* a) { _a = a; };
+
+		virtual void StateTransition() = 0;
 
 		std::string GetAgentState();
 
@@ -77,6 +79,7 @@ public:
 		std::string _lowLevelState;
 		static DiseaseInfluence* _DI;
 		Parameter* _list;
+		Agent* _a;
 	};
 	Agent(Location loc, AgentState* initialState, unsigned int age);
 
@@ -93,7 +96,9 @@ public:
 //-----------------------Healthy States-------------------------------------
 class HealthyState : public Agent::AgentState {
 public:
-	HealthyState() { _highLevelState = Healthy; _lowLevelState = "Healthy"; }
+	HealthyState(Agent* a) : AgentState{a} {
+		_highLevelState = Healthy; _lowLevelState = "Healthy";
+	}
 	
 	// Event to transition to this state
 	class StateTransitionEvent : public EventAction {
@@ -106,13 +111,15 @@ public:
 		Agent* _a;
 
 	};
-	virtual void StateTransition(Agent* a); // Will determine the next state and call event
+	virtual void StateTransition(); // Will determine the next state and call event
 };
 
 // Example of Healthy state
 class StandardHealthyState : public HealthyState {
 public:
-	StandardHealthyState() { _lowLevelState = "Standard_Health"; }
+	StandardHealthyState(Agent* a) : HealthyState{ a } {
+		_lowLevelState = "Standard_Health";
+	}
 
 	// Event to transition to this state
 	class StateTransitionEvent : public EventAction {
@@ -125,12 +132,14 @@ public:
 		Agent* _a;
 
 	};
-	void StateTransition(Agent* a);
+	void StateTransition();
 };
 //-----------------------Infected States-------------------------------------
 class InfectedState : public Agent::AgentState {
 public:
-	InfectedState() { _highLevelState = Infected; _lowLevelState = "Infected"; }
+	InfectedState(Agent* a) : AgentState{ a } {
+		_highLevelState = Infected; _lowLevelState = "Infected";
+	}
 	
 	// Event to transition to this state
 	class StateTransitionEvent : public EventAction {
@@ -144,13 +153,13 @@ public:
 
 	};
 
-	virtual void StateTransition(Agent* a);
+	virtual void StateTransition();
 };
 
 //-----------------------Other States-------------------------------------
 class OtherState : public Agent::AgentState {
 public:
-	OtherState() {
+	OtherState(Agent* a) : AgentState{ a } {
 		_highLevelState = Other;
 	}
 
@@ -162,13 +171,13 @@ public:
 		void Execute();
 	};
 
-	virtual void StateTransition(Agent* a);
+	virtual void StateTransition();
 
 };
 
 class TestOtherState : public OtherState {
 public:
-	TestOtherState() {
+	TestOtherState(Agent* a) : OtherState{ a } {
 		_highLevelState = Other;
 	}
 
@@ -180,7 +189,7 @@ public:
 		void Execute();
 	};
 
-	virtual void StateTransition(Agent* a);
+	virtual void StateTransition();
 
 };
 #endif
