@@ -10,7 +10,7 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 {
 	// initializing Disease Influence Variables 
 	_envDI = DI;
-	Agent::AgentState::SetDiseaseInfluence(_envDI);
+	Agent::SetDiseaseInfluence(_envDI);
 
 	// Frequency of steps during simualation
 	_stepSize = stepSize;
@@ -20,32 +20,35 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 	_Xmax = Xmax;
 	_cellResolution = cellResolution;
 
-	// initializing all the cells
-	_cell = new CellNode**[1 + ((Ymax - 1) / cellResolution)];
-	_cellCounter = new unsigned int* [1 + ((Ymax - 1) / cellResolution)];
-	for (int i = 0; i < (1 + ((Ymax - 1) / cellResolution)); i++) {
-		_cell[i] = new CellNode * [1 + ((Xmax - 1) / cellResolution)];
-		_cellCounter = new unsigned int* [1 + ((Xmax - 1) / cellResolution)];
-		for (int j = 0; j < (1 + ((Xmax - 1) / cellResolution)); j++)
-			_cell[i][j] = nullptr;
-	}
+	// Initializing and Creating cells
+	_cellContainer.CreateCells();
 
 	// Creating all Agents Simulation
 	Location coordinate;
 	_agentRef = new Agent*[numAgents];
 	for (int i = 0; i < numAgents-numInfected; i++) {
 		coordinate._x = rand() % Xmax; coordinate._y = rand() % Ymax; // randoming choosing location with in domain
-		_agentRef[i] = new Agent(coordinate, new HealthyState(_agentRef[i]), rand() % 100 + 1);
+		SusceptibleStateEvent* ea = new SusceptibleStateEvent;
+		_agentRef[i] = new Agent(coordinate, ea, rand() % 100 + 1);
+		_cellContainer.AddAgent(_agentRef[i]);
+		ea->SetAgent(_agentRef[i]);
 	}
 
 	// Infection Seed
-	for (int i = 1; i < numInfected; i++) {
+	for (int i = numAgents - numInfected; i < numAgents; i++) {
 		coordinate._x = rand() % Xmax; coordinate._y= rand() % Ymax; 
-		_agentRef[numAgents - numInfected + i] = new Agent(coordinate, new InfectedState(_agentRef[numAgents - numInfected + i]), rand() % 100 + 1);
+		InfectedStateEvent* ise = new InfectedStateEvent;
+		_agentRef[i] = new Agent(coordinate, ise, rand() % 100 + 1);
+		_cellContainer.AddAgent(_agentRef[i]);
+		ise->SetAgent(_agentRef[i]);
 	}
 
+	_numAgents = numAgents;
 	// Scheduling the first event
 	ScheduleEventIn(_stepSize, new MoveEvent(this));
+
+	/* initialize random seed: */
+	//srand(time(NULL));
 }
 
 class AgentTracker {
@@ -84,85 +87,128 @@ public:
 	}
 };
 
-void Environment::MoveAgents()
+void Environment::CheckAgentDistances()
 {
-	for (int r = 0; r < (1 + ((_Ymax - 1) / _cellResolution)); r++) {
-		for (int c = 0; c < (1 + ((_Xmax - 1) / _cellResolution)); c++) {
-			if (_cellCounter[r][c] > 1) {
-				AgentTracker InfectedAgents;
-				AgentTracker HealthyAgents;
-				CellNode* curr = _cell[r][c];
-				bool doLoop = true;	// to state whether to change curr cell
-				//bool loop = true;	// to state whether or not to interate through cell 
-				short int i = 0;	// counter of number of do-while loops 
-				do {
-					// Finding Infected and Healthy Agents and saving reference
-					while (curr != nullptr /*&& loop*/) {
-						if (curr->_aRef->_agentState->GetAgentSubState() == Healthy)
-							HealthyAgents.AddAgent(curr->_aRef);
-						else if (curr->_aRef->_agentState->GetAgentSubState() == Infected)
-							InfectedAgents.AddAgent(curr->_aRef);
+	if (STAT::_numSusceptible > 0) {
+		unsigned int coln_max = (1 + ((_Xmax - 1) / _cellResolution));
+		unsigned int row_max = (1 + ((_Xmax - 1) / _cellResolution));
+		for (int r = 0; r < (1 + ((_Ymax - 1) / _cellResolution)); r++) {
+			for (int c = 0; c < (1 + ((_Xmax - 1) / _cellResolution)); c++) {
+				if (_cellContainer.GetCounterValue(r, c) > 1) {
+					AgentTracker InfectedAgents;
+					AgentTracker HealthyAgents;
+					CellLinkedList::CellNode* curr = _cellContainer.GetCellRef(r, c);
+					bool doLoop = true;	// to state whether to change curr cell
+					//bool loop = true;	// to state whether or not to interate through cell 
+					short int i = 0;	// counter of number of do-while loops 
+					bool orginialCell = true; // Too not search for infected agents when outside orginial cell
+					do {
+						// Finding Infected and Healthy Agents and saving reference
+						while (curr != nullptr /*&& loop*/) {
+							if (curr->_aRef->GetHighLevelState() == Susceptible)
+								HealthyAgents.AddAgent(curr->_aRef);
+							else if (orginialCell ? curr->_aRef->GetHighLevelState() == Infected : false)
+								InfectedAgents.AddAgent(curr->_aRef);
 
-						curr = curr->_next;
-					}
-					//loop = false; // until indicated, dont loop through cell
+							curr = curr->_next;
+						}
 
-					// Searching 1 cell out to determine affects of other agents on currents and vis versa
-					switch (i) {
-					case 0:
-						if (c+1 < (1 + ((_Xmax - 1) / _cellResolution)) ? _cellCounter[r][c+1] > 0 : false) {
-							//loop = true;
-							curr = _cell[r][c + 1];
+						// Determine if current cell has no infected to infect other cells
+						if (orginialCell ? InfectedAgents._nodeCounter == 0 : false) {
+							i = -1; // Dont search other cells around
 						}
-						break;
-					case 1:
-						if (r + 1 < (1 + ((_Ymax - 1) / _cellResolution)) ? _cellCounter[r + 1][c] > 0 : false) {
-							//loop = true;
-							curr = _cell[r + 1][c];
-						}
-						break;
-					case 2:
-						if (c + 1 < (1 + ((_Xmax - 1) / _cellResolution)) && r + 1 < (1 + ((_Ymax - 1) / _cellResolution)) ? _cellCounter[r + 1][c + 1] > 0 : false) {
-							//loop = true;
-							curr = _cell[r + 1][c + 1];
-						}
-						break;
-					case 3:
-						if (c - 1 > 0  && r + 1 < (1 + ((_Ymax - 1) / _cellResolution)) ? _cellCounter[r][c + 1] > 0 : false) {
-							//loop = true;
-							curr = _cell[r][c + 1];
-						}
-						break;
-					case 4:
-						doLoop = false;
-						break;
-					default:
-						break;
-					}
-					i++; // next test
-				} while (doLoop);
-				// If there is infected and healthy agents
-				if (HealthyAgents._nodeCounter > 0 && InfectedAgents._nodeCounter > 0) {
-					Distance distance(InfectedAgents._nodeCounter);
-					AgentTracker::NodeTracker* curr_H = HealthyAgents.GetHead();
-					AgentTracker::NodeTracker* curr_I = InfectedAgents.GetHead();
+						//loop = false; // until indicated, dont loop through cell
 
-					// Calculating the distance between healthy and infected
-					while (curr_H != nullptr) {
-						while (curr_I != nullptr) {
-							// Calculating Distance
-							distance.AddDistance(sqrtf((curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) *
-											(curr_H->_aRef->_location._x - curr_I->_aRef->_location._x) +
-											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y) *
-											(curr_H->_aRef->_location._y - curr_I->_aRef->_location._y)), 
-											curr_I->_aRef->_agentState->GetAgentState());
-							curr_I = curr_I->_next;
+						// Searching 1 cell out to determine affects of other agents on currents and vis versa
+						switch (i) {
+						case 0:
+							orginialCell = false; // orginial cell has been searched, dont search for infected in other cells relative to this cell
+
+							// right
+							if (c + 1 < coln_max ? _cellContainer.GetCounterValue(r, c + 1) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r, c + 1);
+							}
+							break;
+						case 1:
+							// left
+							if (c - 1 >= 0 ? _cellContainer.GetCounterValue(r, c - 1) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r, c - 1);
+							}
+							break;
+						case 2:
+							// top
+							if (r + 1 < row_max ? _cellContainer.GetCounterValue(r + 1, c) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r + 1, c);
+							}
+							break;
+						case 3:
+							// top-right
+							if (c + 1 < coln_max && r + 1 < row_max ? _cellContainer.GetCounterValue(r + 1, c + 1) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r + 1, c + 1);
+							}
+							break;
+						case 4:
+							// top-left
+							if (c - 1 >= 0 && r + 1 < row_max ? _cellContainer.GetCounterValue(r + 1, c - 1) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r + 1, c - 1);
+							}
+							break;
+						case 5:
+							// bottom
+							if (r - 1 >= 0 ? _cellContainer.GetCounterValue(r - 1, c) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r - 1, c);
+							}
+							break;
+						case 6:
+							// bottom-right
+							if (c + 1 < coln_max && r - 1 >= 0 ? _cellContainer.GetCounterValue(r - 1, c + 1) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r - 1, c + 1);
+							}
+							break;
+						case 7:
+							// bottom-left
+							if (c - 1 >= 0 && r - 1 >= 0 ? _cellContainer.GetCounterValue(r - 1, c - 1) > 0 : false) {
+								//loop = true;
+								curr = _cellContainer.GetCellRef(r - 1, c - 1);
+							}
+							break;
+						default:
+							doLoop = false;
+							break;
 						}
-						curr_H->_aRef->_agentState->SetParameters(&distance);
-						curr_H->_aRef->_agentState->StateTransition();
-						curr_I = InfectedAgents.GetHead();
-						curr_H = curr_H->_next;
-						distance.resetIndex(); // resets index on float[] for next Healthy agent
+						i++; // next test
+					} while (doLoop);
+					// If there is infected and healthy agents
+					if (HealthyAgents._nodeCounter > 0 && InfectedAgents._nodeCounter > 0) {
+						Distance distance(InfectedAgents._nodeCounter);
+						AgentTracker::NodeTracker* curr_H = HealthyAgents.GetHead();
+						AgentTracker::NodeTracker* curr_I = InfectedAgents.GetHead();
+
+						// Calculating the distance between healthy and infected
+						while (curr_H != nullptr) {
+							while (curr_I != nullptr) {
+								// Calculating Distance
+								distance.AddDistance(sqrtf((curr_H->_aRef->GetLocation()._x - curr_I->_aRef->GetLocation()._x) *
+									(curr_H->_aRef->GetLocation()._x - curr_I->_aRef->GetLocation()._x) +
+									(curr_H->_aRef->GetLocation()._y - curr_I->_aRef->GetLocation()._y) *
+									(curr_H->_aRef->GetLocation()._y - curr_I->_aRef->GetLocation()._y)),
+									curr_I->_aRef->GetLowLevelState());
+								curr_I = curr_I->_next;
+							}
+							curr_H->_aRef->SetParameters(&distance);
+							curr_H->_aRef->StateTransition();
+							curr_I = InfectedAgents.GetHead();
+							curr_H = curr_H->_next;
+							distance.resetIndex(); // resets index on float[] for next Healthy agent
+						}
+						// PLOBLEM
 					}
 				}
 			}
@@ -170,8 +216,19 @@ void Environment::MoveAgents()
 	}
 }
 
-void Environment::AgentStatechange()
+// Random Movements
+void Environment::MoveAgents()
 {
-
+	_cellContainer.~CellLinkedList();
+	Location coordinate;
+	unsigned int numCells_y = 1 + ((_Ymax - 1) / _cellResolution);
+	unsigned int numCells_x = 1 + ((_Xmax - 1) / _cellResolution);
+	for (int i = 0; i < _numAgents; i++) {
+		// Calculating random movement
+		coordinate._x = abs((int)(rand() % _Xmax + _agentRef[i]->GetLocation()._x)) % _Xmax * _stepSize;
+		coordinate._y = abs((int)(rand() % _Ymax + _agentRef[i]->GetLocation()._y)) % _Ymax * _stepSize;
+		_agentRef[i]->SetLocation(coordinate);
+		_cellContainer.AddAgent(_agentRef[i]);
+		
+	}
 }
-

@@ -1,98 +1,149 @@
 #include "AgentState.h"
 
+unsigned int STAT::_numInfected = 0;
+unsigned int STAT::_numSusceptible = 0;
+unsigned int STAT::_numOther = 0;
+
 // Initializing Static Variables
 unsigned int Agent::_nextId = 0;
-Agent::Agent(Location loc, AgentState* initialState, unsigned int age)
+Agent::Agent(Location& loc, EventAction * ea, unsigned int age)
 {
 	// Initializing variables
 	_id = _nextId++;
 	_location = loc;
-	_agentState = initialState;
 	_age = age;
-
-	// Scheduling SIR Event if infected
-	if (_agentState->GetAgentSubState() == Infected)
-	{
-		_agentState->StateTransition();
-	}
+	
+	ScheduleEventAt(0, ea);
+	/*ea->Execute()*/; // setting the initial state of the agent
 }
 
 
-DiseaseInfluence* Agent::AgentState::_DI = nullptr;
+DiseaseInfluence* Agent::_DI = nullptr;
 
+void Agent::StateTransition()
+{
+	if (!_scheduled) {
+		// calling function to determine whether to change states and what state
+		_scheduled = _stateTranitionFunction(this);
+	}
+}
 
-std::string Agent::AgentState::GetAgentState()
+std::string Agent::GetLowLevelState()
 {
 	return _lowLevelState;
 }
 
-SIR_States Agent::AgentState::GetAgentSubState()
+SIR_States Agent::GetHighLevelState()
 {
 	return _highLevelState;
 }
 
-void Agent::AgentState::SetAgentSubState(SIR_States subState)
+
+void Agent::SetHighLevelState(SIR_States subState)
 {
 	_highLevelState = subState;
 }
 
-void Agent::AgentState::SetAgentState(std::string state)
+void Agent::SetLowLevelState(std::string state)
 {
 	_lowLevelState = state;
 }
 
-void Agent::AgentState::SetDiseaseInfluence(DiseaseInfluence* DI)
+void Agent::SetDiseaseInfluence(DiseaseInfluence* DI)
 {
 	_DI = DI;
 }
 
-void Agent::AgentState::SetParameters(Parameter * list)
+void Agent::SetParameters(Parameter * list)
 {
-	delete _list; // deleting previous dynamic object to point to new object
+	//delete _list; // deleting previous dynamic object to point to new object
 	_list = list;
 }
 
-
-
-//---------------------HEALTHY STATES--------------------------
-
-void HealthyState::StateTransitionEvent::Execute()
+//---------------------HEALTHY STATES-------------------------
+float SusceptibleStateEvent::_expDistributionRate = 0.5;
+void SusceptibleStateEvent::Execute()
 {
-	delete _a->_agentState;
-	_a->_agentState = new HealthyState(_a);
-	_a->_agentState->StateTransition();
+	// Transitioning states
+	_a->SetHighLevelState(Susceptible);
+	_a->SetLowLevelState("Susceptible_State");
+	_a->SetScheduled(false);
+	STAT::_numSusceptible++; STAT::printSTAT();
+	printf("Agent %i | Low-level %s | High-level %i\n", _a->GetId(), _a->GetLowLevelState().c_str(), _a->GetHighLevelState());
+
+	// Setting Agent Parameters for State
+	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
+	_a->_probabilities = new float;
+	_a->_probabilities[0] = 1.0f; // initializing first value
+	_a->_stateTranitionFunction = SusceptibleStateEvent::StateTransition;
 }
-void HealthyState::StateTransition()
+bool SusceptibleStateEvent::StateTransition(Agent* a)
 {
+	// a->_probabilities[0] == I
+	Distance* dists = (Distance *)(a->_list);
+	float H = a->_probabilities[0] != 1.0f ? 1-a->_probabilities[0] : 1.0f;
+	float I_prob = 0.0f;
+	unsigned int RNG;
+	for (int i = 0; i < dists->size(); i++) {
+		// Calculating probability of Infected given distance
+		I_prob = exp(-_expDistributionRate * (*dists)[i]) - exp(-FLT_MAX) - 0.05;
 
+		// Calculating non normalized probability
+		a->_probabilities[0] = a->_probabilities[0] * I_prob;
+		H = H * (1 - I_prob);
+
+		// Normalizing
+		a->_probabilities[0] = a->_probabilities[0] / (a->_probabilities[0] + H);
+		H = H / (a->_probabilities[0] + H);
+
+		RNG = rand() % 101;
+		if (RNG > H*100) {
+			SimulationExecutive::GetInstance()->ScheduleEventIn(0, new InfectedStateEvent(a)); // Infected Event
+			STAT::_numSusceptible--;
+			return true; // Switched states 
+		}
+	}
+	return false;
 }
 
-//// Example Healthy State
-void StandardHealthyState::StateTransitionEvent::Execute()
+//---------------------Infected STATES-------------------------
+Distribution* InfectedStateEvent::_timeDelay = new Triangular(5, 10, 25);
+void InfectedStateEvent::Execute()
 {
-	delete _a->_agentState;
-	_a->_agentState = new StandardHealthyState(_a);
-	_a->_agentState->StateTransition();
+	// Transitioning states
+	_a->SetHighLevelState(Infected);
+	_a->SetLowLevelState("Infected_State");
+	STAT::_numInfected++; STAT::printSTAT();
+	printf("Agent %i | Low-level %s | High-level %i\n", _a->GetId(), _a->GetLowLevelState().c_str(), _a->GetHighLevelState());
+
+	// Setting Agent Parameters given state
+	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
+	_a->_probabilities = new float; // NEED TO CHANGE PENDING ON THE NUMBER OF STATES TO TRANSITION TOO
+	_a->_probabilities[0] = 1.0f; // initializing first value
+
+	_a->SetScheduled(StateTransition(_a));
 }
-void StandardHealthyState::StateTransition()
+bool InfectedStateEvent::StateTransition(Agent* a)
 {
-}
-
-
-
-
-//-----------------------Infected States-------------------------------------
-void InfectedState::StateTransitionEvent::Execute()
-{
-	delete _a->_agentState;
-	_a->_agentState = new InfectedState(_a);
-	_a->_agentState->StateTransition();
-}
-void InfectedState::StateTransition()
-{
+	SimulationExecutive::GetInstance()->ScheduleEventIn(_timeDelay->GetRV(), new RecoveredStateEvent(a)); // Recoved State
+	return true;
 }
 
-//-----------------------Other States-------------------------------------
-void OtherState::StateTransition()
+//---------------------Recoved STATES-------------------------
+
+void RecoveredStateEvent::Execute()
 {
+	// Transitioning states
+	_a->SetHighLevelState(Other);
+	_a->SetLowLevelState("Other_State");
+	STAT::_numOther++;	STAT::_numInfected--; STAT::printSTAT();
+	printf("Agent %i | Low-level %s | High-level %i\n", _a->GetId(), _a->GetLowLevelState().c_str(), _a->GetHighLevelState());
+
+	// Setting Agent Parameters given state
+	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
+	_a->_probabilities = nullptr; // NEED TO CHANGE PENDING ON THE NUMBER OF STATES TO TRANSITION TOO
+}
+bool RecoveredStateEvent::StateTransition(Agent* a)
+{
+	return true;
 }
