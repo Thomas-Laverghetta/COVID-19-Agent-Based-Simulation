@@ -4,6 +4,7 @@
 #include "SimObj.h"
 #include "Distribution.h"
 
+
 // Agents highlevel States
 enum SIR_States { Susceptible, Infected, Other };
 
@@ -105,6 +106,7 @@ public:
 	// Get Id
 	unsigned int GetId() { return _id; }
 
+
 	// Calculation Parameters
 	bool (*_stateTranitionFunction)(Agent*);
 	Parameter* _list;
@@ -176,7 +178,6 @@ public:
 
 	static bool StateTransition(Agent* a);
 private:
-	
 };
 #endif
 
