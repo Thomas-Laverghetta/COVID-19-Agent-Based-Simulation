@@ -2,9 +2,10 @@
 #define AGENTSTATE_H
 #include <string>
 #include "SimObj.h"
+#include "Distribution.h"
 
 // Agents highlevel States
-enum SIR_States { Healthy, Infected, Other };
+enum SIR_States { Susceptible, Infected, Other };
 
 // Location Data Structure
 struct Location {
@@ -31,17 +32,12 @@ protected:
 };
 class Distance : public Parameter {
 public:
-	float* _distance = nullptr;
-
-	// allows for different levels of exposer pending on the state of infection (state)
-	std::string * _highLevelState; 
-	unsigned int _numDistances = 0;
-	unsigned int _index = 0;
 	Distance(unsigned int numDistance) : Parameter{2} {
 		_distance = new float[numDistance];				// Para 1
 		_highLevelState = new std::string[numDistance]; // para 2
 		_numDistances = numDistance;
 		_numParameters = 1;
+		_index = 0;
 	}
 	void AddDistance(float dist, std::string state) {
 		_distance[_index] = dist;
@@ -51,146 +47,136 @@ public:
 	void resetIndex() {
 		_index = 0;
 	}
+	unsigned int size() { return _numDistances; }
+	float operator[](unsigned int index) {
+		if (index <= index)
+			return _distance[index];
+		else
+			return -1;
+	}
+	~Distance() {
+		delete _distance;
+	}
+private:
+	float* _distance;
+	// allows for different levels of exposer pending on the state of infection (state)
+	std::string* _highLevelState;
+	unsigned int _numDistances;
+	unsigned int _index;
 };
 
 // Agents
 class Agent : public SimObj {
 public:
-	// Base for all states
-	class AgentState {
-	public:
-		AgentState(Agent* a) { _a = a; };
+	Agent(Location& loc, EventAction * ea, unsigned int age);
 
-		virtual void StateTransition() = 0;
+	// Runs State Transition Function pointer to determine next state transition to occur
+	void StateTransition();
 
-		std::string GetAgentState();
+	// Gets low level that is defined by the developer
+	std::string GetLowLevelState();
 
-		SIR_States GetAgentSubState();
+	// Gets the agents low level state (infected, Susceptible, or other state)
+	SIR_States GetHighLevelState();
 
-		void SetAgentSubState(SIR_States subState);
+	// Setting High Level State (Infected, Susceptible, or other) 
+	void SetHighLevelState(SIR_States subState);
 
-		void SetAgentState(std::string state);
+	// Setting Low Level State
+	void SetLowLevelState(std::string state);
 
-		static void SetDiseaseInfluence(DiseaseInfluence* DI);
+	// Setting Diesease Influence
+	static void SetDiseaseInfluence(DiseaseInfluence* DI);
 
-		void SetParameters(Parameter * list);
-	protected:
-		SIR_States _highLevelState;
-		std::string _lowLevelState;
-		static DiseaseInfluence* _DI;
-		Parameter* _list;
-		Agent* _a;
-	};
-	Agent(Location loc, AgentState* initialState, unsigned int age);
+	// Parameters (e.g., Distance)
+	void SetParameters(Parameter* list);
 
+	// Get location
+	Location& GetLocation() {
+		return _location;
+	}
+
+	// Setting Location
+	void SetLocation(Location& loc) {
+		_location = loc;
+	}
+
+	void SetScheduled(bool sch) { _scheduled = sch; }
+	// Get Id
+	unsigned int GetId() { return _id; }
+
+	// Calculation Parameters
+	bool (*_stateTranitionFunction)(Agent*);
+	Parameter* _list;
+	float* _probabilities;
+private:
 	// state Variables
 	Location _location;
 	unsigned int _age;
 	unsigned int _id;
+	static DiseaseInfluence* _DI;
+	SIR_States _highLevelState;
+	std::string _lowLevelState;
 	static unsigned int _nextId;
-
-	float _infectionLevels; 	// how infected they are
-	AgentState* _agentState;
+	bool _scheduled;
 };
 
-//-----------------------Healthy States-------------------------------------
-class HealthyState : public Agent::AgentState {
+//typedef float* (*StateTransitionFunction)(Agent*);
+typedef bool (*StateTransitionFunction)(Agent*);
+typedef EventAction* (*NextEvents)(Agent *);
+
+class AgentEventAction : public EventAction, public SimObj {
 public:
-	HealthyState(Agent* a) : AgentState{a} {
-		_highLevelState = Healthy; _lowLevelState = "Healthy";
-	}
+	//virtual bool StateTransition(Agent* a) = 0;
+protected:
+	Agent* _a;
+};
+
+class SusceptibleStateEvent : public AgentEventAction {
+public:
+	SusceptibleStateEvent() { _a = nullptr;  }
+
+	SusceptibleStateEvent(Agent* a) { _a = a; }
+
+	static EventAction* New(Agent* a) { return new SusceptibleStateEvent(a); }
+
+	void Execute();
+
+	void SetAgent(Agent* a) { _a = a; }
+
+	static bool StateTransition(Agent* a);
+private:
+	static float _expDistributionRate;
+};
+
+class InfectedStateEvent : public AgentEventAction {
+public:
+	InfectedStateEvent() { _a = nullptr;  }
+
+	InfectedStateEvent(Agent* a) { _a = a; }
+
+	static EventAction* New(Agent* a) { return new InfectedStateEvent(a); }
+
+	void Execute();
+
+	void SetAgent(Agent* a) { _a = a; }
+
+	static bool StateTransition(Agent* a);
+private:
+	static Distribution* _timeDelay;
+};
+
+class RecoveredStateEvent : public AgentEventAction {
+public:
+	RecoveredStateEvent(Agent* a) { _a = a; }
+
+	static EventAction* New(Agent* a) { return new RecoveredStateEvent(a); }
+
+	void Execute();
+
+	static bool StateTransition(Agent* a);
+private:
 	
-	// Event to transition to this state
-	class StateTransitionEvent : public EventAction {
-	public:
-		StateTransitionEvent(Agent* a) { _a = a; }
-
-		// Execute Event
-		void Execute();
-	private:
-		Agent* _a;
-
-	};
-	virtual void StateTransition(); // Will determine the next state and call event
-};
-
-// Example of Healthy state
-class StandardHealthyState : public HealthyState {
-public:
-	StandardHealthyState(Agent* a) : HealthyState{ a } {
-		_lowLevelState = "Standard_Health";
-	}
-
-	// Event to transition to this state
-	class StateTransitionEvent : public EventAction {
-	public:
-		StateTransitionEvent(Agent* a) { _a = a; }
-
-		// Execute Event
-		void Execute();
-	private:
-		Agent* _a;
-
-	};
-	void StateTransition();
-};
-//-----------------------Infected States-------------------------------------
-class InfectedState : public Agent::AgentState {
-public:
-	InfectedState(Agent* a) : AgentState{ a } {
-		_highLevelState = Infected; _lowLevelState = "Infected";
-	}
-	
-	// Event to transition to this state
-	class StateTransitionEvent : public EventAction {
-	public:
-		StateTransitionEvent(Agent* a) { _a = a; }
-
-		// Execute Event
-		void Execute();
-	private:
-		Agent* _a;
-
-	};
-
-	virtual void StateTransition();
-};
-
-//-----------------------Other States-------------------------------------
-class OtherState : public Agent::AgentState {
-public:
-	OtherState(Agent* a) : AgentState{ a } {
-		_highLevelState = Other;
-	}
-
-	// Event to transition to this State
-	class StateTransitionEvent : public EventAction{
-	public:
-		StateTransitionEvent(Agent* a);
-
-		void Execute();
-	};
-
-	virtual void StateTransition();
-
-};
-
-class TestOtherState : public OtherState {
-public:
-	TestOtherState(Agent* a) : OtherState{ a } {
-		_highLevelState = Other;
-	}
-
-	// Event to transition to this State
-	class StateTransitionEvent : public EventAction {
-	public:
-		StateTransitionEvent(Agent* a);
-
-		void Execute();
-	};
-
-	virtual void StateTransition();
-
 };
 #endif
 
