@@ -16,7 +16,7 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 	STAT::_env = this;
 
 	// Frequency of steps during simualation
-	_stepSize = stepSize;
+	_moveFrequency = stepSize;
 
 	// Setting domain
 	_domain._x = Xmax;
@@ -48,16 +48,10 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 
 	_numAgents = numAgents;
 	// Scheduling the first event
-	ScheduleEventIn(_stepSize, new MoveEvent(this));
+	ScheduleEventIn(_moveFrequency, new MoveEvent(this));
 
 	/* initialize random seed: */
 	srand(time(NULL));
-}
-
-void Environment::GetAgentRefInfo(Agent** aRef, unsigned int& numAgents)
-{
-	aRef = _agentRef;
-	numAgents = _numAgents;
 }
 
 class AgentTracker {
@@ -231,8 +225,8 @@ void Environment::MoveAgents()
 	Location coordinate;
 	for (int i = 0; i < _numAgents; i++) {
 		// Calculating random movement
-		coordinate._x = abs((int)(rand() % _domain._x + _agentRef[i]->GetLocation()._x)) % _domain._x * _stepSize;
-		coordinate._y = abs((int)(rand() % _domain._y + _agentRef[i]->GetLocation()._y)) % _domain._y * _stepSize;
+		coordinate._x = abs((int)(rand() % _domain._x + _agentRef[i]->GetLocation()._x)) % _domain._x * _moveFrequency;
+		coordinate._y = abs((int)(rand() % _domain._y + _agentRef[i]->GetLocation()._y)) % _domain._y * _moveFrequency;
 		_agentRef[i]->SetLocation(coordinate);
 		_cellContainer.AddAgent(_agentRef[i]);
 		

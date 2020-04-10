@@ -11,9 +11,8 @@ public:
 	/*
 		Creates Agents and Sets ranges
 	*/
-	Environment(unsigned int numAgents, unsigned int numInfected, unsigned int Ymax, unsigned int Xmax, unsigned int cellResolution, Time stepSize, DiseaseInfluence* DI);
-
-	void GetAgentRefInfo(Agent** aRef, unsigned int& numAgents);
+	Environment(unsigned int numAgents = 100, unsigned int numInfected = 3, unsigned int Ymax = 100, unsigned int Xmax = 100, 
+				unsigned int cellResolution = 10, Time moveFrequency = 1.0f, DiseaseInfluence* DI = nullptr);
 private:
 	//--------------------------------DATA_Struct----------------------------
 	// Cell data Structure
@@ -102,7 +101,7 @@ private:
 	//------------------------------STATE_VAR------------------------------
 	Agent** _agentRef;
 	CellLinkedList _cellContainer{ this };
-	Time _stepSize;
+	Time _moveFrequency;
 	DiseaseInfluence* _envDI;
 	Location _domain;
 	unsigned int _cellResolution;
@@ -133,7 +132,7 @@ private:
 			_env->CheckAgentDistances();
 			STAT::UpdateData();
 			if(STAT::_numInfected > 0)
-				ScheduleEventIn(_env->_stepSize, this);
+				ScheduleEventIn(_env->_moveFrequency, this);
 		}
 	private:
 		Environment* _env;
