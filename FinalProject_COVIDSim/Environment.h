@@ -132,7 +132,7 @@ private:
 			_env->CheckAgentDistances();
 			STAT::UpdateData();
 			if(STAT::GetNumInfected() > 0)
-				ScheduleEventIn(_env->_stepSize, new MoveEvent(_env));
+				ScheduleEventIn(_env->_stepSize, this);
 		}
 	private:
 		Environment* _env;
