@@ -74,34 +74,32 @@ public:
 	void StateTransition();
 
 	// Gets low level that is defined by the developer
-	std::string GetLowLevelState();
+	std::string GetLowLevelState() { return _lowLevelState; }
 
 	// Gets the agents low level state (infected, Susceptible, or other state)
-	SIR_States GetHighLevelState();
+	SIR_States GetHighLevelState() { return _highLevelState; }
 
 	// Setting High Level State (Infected, Susceptible, or other) 
-	void SetHighLevelState(SIR_States subState);
+	void SetHighLevelState(SIR_States subState) { _highLevelState = subState; }
 
 	// Setting Low Level State
-	void SetLowLevelState(std::string state);
+	void SetLowLevelState(std::string state) { _lowLevelState = state; }
 
 	// Setting Diesease Influence
-	static void SetDiseaseInfluence(DiseaseInfluence* DI);
+	static void SetDiseaseInfluence(DiseaseInfluence* DI) { _DI = DI; }
 
 	// Parameters (e.g., Distance)
-	void SetParameters(Parameter* list);
+	void SetParameters(Parameter* list) { _list = list; }
 
 	// Get location
-	Location& GetLocation() {
-		return _location;
-	}
+	Location& GetLocation() { return _location; }
 
 	// Setting Location
-	void SetLocation(Location& loc) {
-		_location = loc;
-	}
+	void SetLocation(Location& loc) { _location = loc; }
 
+	// Setting Schedule
 	void SetScheduled(bool sch) { _scheduled = sch; }
+	
 	// Get Id
 	unsigned int GetId() { return _id; }
 
@@ -127,8 +125,13 @@ typedef EventAction* (*NextEvents)(Agent *);
 
 class AgentEventAction : public EventAction, public SimObj {
 public:
+	// General Execute
 	void Execute();
+	
+	// Specific Execute
 	virtual void Execute2() = 0;
+	
+	// Setting Agent variable
 	void SetAgent(Agent* a) { _a = a; }
 protected:
 	Agent* _a;

@@ -2,6 +2,8 @@
 
 // Initializing Static Variables
 unsigned int Agent::_nextId = 0;
+DiseaseInfluence* Agent::_DI = nullptr;
+
 Agent::Agent(Location& loc, EventAction * ea, unsigned int age)
 {
 	// Initializing variables
@@ -9,12 +11,9 @@ Agent::Agent(Location& loc, EventAction * ea, unsigned int age)
 	_location = loc;
 	_age = age;
 	
-	ScheduleEventAt(0, ea);
-	/*ea->Execute()*/; // setting the initial state of the agent
+	// setting the initial state of the agent: High and Low states
+	ScheduleEventAt(0, ea); 
 }
-
-
-DiseaseInfluence* Agent::_DI = nullptr;
 
 void Agent::StateTransition()
 {
@@ -24,46 +23,22 @@ void Agent::StateTransition()
 	}
 }
 
-std::string Agent::GetLowLevelState()
-{
-	return _lowLevelState;
-}
-
-SIR_States Agent::GetHighLevelState()
-{
-	return _highLevelState;
-}
-
-
-void Agent::SetHighLevelState(SIR_States subState)
-{
-	_highLevelState = subState;
-}
-
-void Agent::SetLowLevelState(std::string state)
-{
-	_lowLevelState = state;
-}
-
-void Agent::SetDiseaseInfluence(DiseaseInfluence* DI)
-{
-	_DI = DI;
-}
-
-void Agent::SetParameters(Parameter * list)
-{
-	//delete _list; // deleting previous dynamic object to point to new object
-	_list = list;
-}
-
-
-//-----------MASTER EXECUTE------------------
+//----------------------------MASTER_EXECUTE-------------------------
+/* 
+	Every State transfer event will have the same general protocol
+	1. Setting High and Low level state
+	2. Resetting schedule
+	3. Setting the number parameters
+	4. Run Specific State Transfer Execute (Execute2)
+		- This will allow for anything that needs to be done in the
+		- event (that hasnt been already been done in Execute()).
+*/
 void AgentEventAction::Execute()
 {
 	// Transitioning states
 	_a->SetHighLevelState(_highLevelState);
 	_a->SetLowLevelState(_lowLevelState);
-	_a->SetScheduled(false);
+	_a->SetScheduled(false); // RESETTING SCH IN AGENT
 
 	// Setting Agent Parameters for State
 	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
@@ -83,6 +58,7 @@ void AgentEventAction::Execute()
 float SusceptibleStateEvent::_expDistributionRate = 0.5;
 void SusceptibleStateEvent::Execute2()
 {
+	// Setting State Transition function
 	_a->_stateTranitionFunction = SusceptibleStateEvent::StateTransition;
 }
 bool SusceptibleStateEvent::StateTransition(Agent* a)
@@ -117,6 +93,10 @@ bool SusceptibleStateEvent::StateTransition(Agent* a)
 Distribution* InfectedStateEvent::_timeDelay = new Triangular(5, 10, 25);
 void InfectedStateEvent::Execute2()
 {
+	// Setting State Transition function
+	_a->_stateTranitionFunction = InfectedStateEvent::StateTransition;
+
+	// Setting Schedule with transition function allowing Execute2() to schedule the next event
 	_a->SetScheduled(StateTransition(_a));
 }
 bool InfectedStateEvent::StateTransition(Agent* a)
@@ -126,8 +106,11 @@ bool InfectedStateEvent::StateTransition(Agent* a)
 }
 
 //---------------------Recoved STATES-------------------------
-void NonSusceptibleStateEvent::Execute2() { }
-bool NonSusceptibleStateEvent::StateTransition(Agent* a)
-{
-	return true;
+void NonSusceptibleStateEvent::Execute2() { 
+	// Setting State Transition function
+	_a->_stateTranitionFunction = NonSusceptibleStateEvent::StateTransition;
+
+	// Setting Schedule with transition function allowing Execute2() to schedule
+	_a->SetScheduled(StateTransition(_a));
 }
+bool NonSusceptibleStateEvent::StateTransition(Agent* a) { return true; }
