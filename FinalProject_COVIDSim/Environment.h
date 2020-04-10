@@ -38,13 +38,13 @@ private:
 			_numColns = 1 + ((_env->_domain._x - 1) / _env->_cellResolution);
 
 			// initializing all the cells
-			_cell = new CellNode** [_numRows];
+			_cellHeads = new CellNode** [_numRows];
 			_cellCounter = new unsigned int* [_numRows];
 			for (int i = 0; i < _numRows; i++) {
-				_cell[i] = new CellNode * [_numColns];
+				_cellHeads[i] = new CellNode * [_numColns];
 				_cellCounter[i] = new unsigned int [_numColns];
 				for (int j = 0; j < _numColns; j++) {
-					_cell[i][j] = nullptr;
+					_cellHeads[i][j] = nullptr;
 					_cellCounter[i][j] = 0;
 				}
 			}
@@ -62,8 +62,8 @@ private:
 			_cellCounter[row][coln]++;
 			
 			// Placing Agent in cell
-			newAgent->_next = _cell[row][coln];
-			_cell[row][coln] = newAgent;
+			newAgent->_next = _cellHeads[row][coln];
+			_cellHeads[row][coln] = newAgent;
 		}
 
 		// Deleting all Nodes
@@ -71,9 +71,9 @@ private:
 			// Node * current = m_head;
 			for (int row = 0; row < _numRows; row++) {
 				for (int coln = 0; coln < _numColns; coln++) {
-					while (_cell[row][coln] != nullptr) {
-						CellNode* to_delete = _cell[row][coln];
-						_cell[row][coln] = _cell[row][coln]->_next;
+					while (_cellHeads[row][coln] != nullptr) {
+						CellNode* to_delete = _cellHeads[row][coln];
+						_cellHeads[row][coln] = _cellHeads[row][coln]->_next;
 						delete to_delete;
 						to_delete = nullptr;
 						_cellCounter[row][coln] = 0;
@@ -84,7 +84,7 @@ private:
 
 		// Getting head node from linked list
 		CellNode* GetCellHead(unsigned int row, unsigned int coln) {
-			return _cell[row][coln];
+			return _cellHeads[row][coln];
 		}
 		
 		unsigned int GetCounterValue(unsigned int row, unsigned int coln) {
@@ -92,7 +92,7 @@ private:
 		}
 	private:
 		Environment* _env;
-		CellNode*** _cell;
+		CellNode*** _cellHeads;
 		unsigned int** _cellCounter;
 		unsigned int _numRows;
 		unsigned int _numColns;
