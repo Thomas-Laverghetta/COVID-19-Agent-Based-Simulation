@@ -100,30 +100,29 @@ void Environment::CheckAgentDistances()
 {
 	if (STAT::_numSusceptible > 0) {
 		unsigned int coln_max = (1 + ((_Xmax - 1) / _cellResolution));
-		unsigned int row_max = (1 + ((_Xmax - 1) / _cellResolution));
-		for (int r = 0; r < (1 + ((_Ymax - 1) / _cellResolution)); r++) {
-			for (int c = 0; c < (1 + ((_Xmax - 1) / _cellResolution)); c++) {
-				if (_cellContainer.GetCounterValue(r, c) > 1) {
-					AgentTracker InfectedAgents;
+		unsigned int row_max = (1 + ((_Ymax - 1) / _cellResolution));
+		for (int r = 0; r < row_max; r++) {
+			for (int c = 0; c < coln_max; c++) {
+				if (_cellContainer.GetCounterValue(r, c) > 0) {
+					AgentTracker InfectedAgents; // Containers to hold found infected and healthy agents
 					AgentTracker HealthyAgents;
-					CellLinkedList::CellNode* curr = _cellContainer.GetCellRef(r, c);
-					bool doLoop = true;	// to state whether to change curr cell
-					//bool loop = true;	// to state whether or not to interate through cell 
-					short int i = 0;	// counter of number of do-while loops 
-					bool orginialCell = true; // Too not search for infected agents when outside orginial cell
+					CellLinkedList::CellNode* curr = _cellContainer.GetCellRef(r, c); // refer to head of cell list
+					bool doLoop = true;			// to state whether to change curr cell
+					short int i = 0;			// counter of number of do-while loops 
+					bool orginialCell = true; 	// Too not search for infected agents when outside orginial cell
 					do {
 						// Finding Infected and Healthy Agents and saving reference
-						while (curr != nullptr /*&& loop*/) {
+						while (curr != nullptr) {
 							if (curr->_aRef->GetHighLevelState() == Susceptible)
 								HealthyAgents.AddAgent(curr->_aRef);
-							else if (orginialCell ? curr->_aRef->GetHighLevelState() == Infected : false)
+							else if (orginialCell && curr->_aRef->GetHighLevelState() == Infected)
 								InfectedAgents.AddAgent(curr->_aRef);
 
 							curr = curr->_next;
 						}
 
 						// Determine if current cell has no infected to infect other cells
-						if (orginialCell ? InfectedAgents._nodeCounter == 0 : false) {
+						if (InfectedAgents._nodeCounter == 0) {
 							i = -1; // Dont search other cells around
 						}
 						//loop = false; // until indicated, dont loop through cell
@@ -230,8 +229,6 @@ void Environment::MoveAgents()
 {
 	_cellContainer.~CellLinkedList();
 	Location coordinate;
-	unsigned int numCells_y = 1 + ((_Ymax - 1) / _cellResolution);
-	unsigned int numCells_x = 1 + ((_Xmax - 1) / _cellResolution);
 	for (int i = 0; i < _numAgents; i++) {
 		// Calculating random movement
 		coordinate._x = abs((int)(rand() % _Xmax + _agentRef[i]->GetLocation()._x)) % _Xmax * _stepSize;
