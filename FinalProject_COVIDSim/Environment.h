@@ -107,17 +107,18 @@ private:
 	//--------STAT--------------
 	class STAT {
 	public:
-		static unsigned int _numInfected;
-		static unsigned int _numSusceptible;
-		static unsigned int _numOther;
 		static void printSTAT() {
 			printf("S = %i | I = %i | R = %i | ", _numSusceptible, _numInfected, _numOther);
 		}
 		// will print or update any data after each move
 		static void UpdateData();
 		static void SetEnv(Environment* env) { _env = env; }
+		static unsigned int GetNumInfected() {return _numInfected; }
 	private:
 		static Environment* _env;
+		static unsigned int _numInfected;
+		static unsigned int _numSusceptible;
+		static unsigned int _numOther;
 	};
 
 	//--------------------------------Events---------------------------------
@@ -130,7 +131,7 @@ private:
 			_env->MoveAgents();
 			_env->CheckAgentDistances();
 			STAT::UpdateData();
-			if(STAT::_numInfected > 0)
+			if(STAT::GetNumInfected() > 0)
 				ScheduleEventIn(_env->_stepSize, new MoveEvent(_env));
 		}
 	private:
