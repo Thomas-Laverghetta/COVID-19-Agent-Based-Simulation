@@ -31,12 +31,14 @@ private:
 			Agent* _aRef;
 			CellNode(Agent* a) { _aRef = a; _next = nullptr; }
 		};
-
+		
+		// creates all cells for simulation
 		void CreateCells() {
-			// initializing all the cells
-			_numRows = 1 + ((_env->_Ymax - 1) / _env->_cellResolution);
-			_numColns = 1 + ((_env->_Xmax - 1) / _env->_cellResolution);
+			// Initializing row and coln
+			_numRows = 1 + ((_env->_domain._y - 1) / _env->_cellResolution);
+			_numColns = 1 + ((_env->_domain._x - 1) / _env->_cellResolution);
 
+			// initializing all the cells
 			_cell = new CellNode** [_numRows];
 			_cellCounter = new unsigned int* [_numRows];
 			for (int i = 0; i < _numRows; i++) {
@@ -81,7 +83,8 @@ private:
 			}
 		}
 
-		CellNode* GetCellRef(unsigned int row, unsigned int coln) {
+		// Getting head node from linked list
+		CellNode* GetCellHead(unsigned int row, unsigned int coln) {
 			return _cell[row][coln];
 		}
 		
@@ -101,7 +104,8 @@ private:
 	CellLinkedList _cellContainer{ this };
 	Time _stepSize;
 	DiseaseInfluence* _envDI;
-	unsigned int _Ymax, _Xmax, _cellResolution;
+	Location _domain;
+	unsigned int _cellResolution;
 	unsigned int _numAgents;
 
 	//--------STAT--------------
@@ -110,14 +114,12 @@ private:
 		static unsigned int _numInfected;
 		static unsigned int _numSusceptible;
 		static unsigned int _numOther;
+		static Environment* _env;
 		static void printSTAT() {
 			printf("S = %i | I = %i | R = %i | ", _numSusceptible, _numInfected, _numOther);
 		}
 		// will print or update any data after each move
 		static void UpdateData();
-		static void SetEnv(Environment* env) { _env = env; }
-	private:
-		static Environment* _env;
 	};
 
 	//--------------------------------Events---------------------------------

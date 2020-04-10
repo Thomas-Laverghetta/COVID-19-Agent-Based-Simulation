@@ -12,15 +12,15 @@ Environment::Environment(unsigned int numAgents, unsigned int numInfected, unsig
 	_envDI = DI;
 	Agent::SetDiseaseInfluence(_envDI);
 
-	// Initializing STAT
-	STAT::SetEnv(this);
+	// Initializing STAT with current object
+	STAT::_env = this;
 
 	// Frequency of steps during simualation
 	_stepSize = stepSize;
 
 	// Setting domain
-	_Ymax = Ymax;
-	_Xmax = Xmax;
+	_domain._x = Xmax;
+	_domain._y = Ymax;
 	_cellResolution = cellResolution;
 
 	// Initializing and Creating cells
@@ -99,14 +99,14 @@ public:
 void Environment::CheckAgentDistances()
 {
 	if (STAT::_numSusceptible > 0) {
-		unsigned int coln_max = (1 + ((_Xmax - 1) / _cellResolution));
-		unsigned int row_max = (1 + ((_Ymax - 1) / _cellResolution));
+		unsigned int coln_max = (1 + ((_domain._x - 1) / _cellResolution));
+		unsigned int row_max = (1 + ((_domain._y - 1) / _cellResolution));
 		for (int r = 0; r < row_max; r++) {
 			for (int c = 0; c < coln_max; c++) {
 				if (_cellContainer.GetCounterValue(r, c) > 0) {
 					AgentTracker InfectedAgents; // Containers to hold found infected and healthy agents
 					AgentTracker HealthyAgents;
-					CellLinkedList::CellNode* curr = _cellContainer.GetCellRef(r, c); // refer to head of cell list
+					CellLinkedList::CellNode* curr = _cellContainer.GetCellHead(r, c); // refer to head of cell list
 					bool doLoop = true;			// to state whether to change curr cell
 					short int i = 0;			// counter of number of do-while loops 
 					bool orginialCell = true; 	// Too not search for infected agents when outside orginial cell
@@ -135,56 +135,56 @@ void Environment::CheckAgentDistances()
 							// right
 							if (c + 1 < coln_max ? _cellContainer.GetCounterValue(r, c + 1) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r, c + 1);
+								curr = _cellContainer.GetCellHead(r, c + 1);
 							}
 							break;
 						case 1:
 							// left
 							if (c - 1 >= 0 ? _cellContainer.GetCounterValue(r, c - 1) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r, c - 1);
+								curr = _cellContainer.GetCellHead(r, c - 1);
 							}
 							break;
 						case 2:
 							// top
 							if (r + 1 < row_max ? _cellContainer.GetCounterValue(r + 1, c) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r + 1, c);
+								curr = _cellContainer.GetCellHead(r + 1, c);
 							}
 							break;
 						case 3:
 							// top-right
 							if (c + 1 < coln_max && r + 1 < row_max ? _cellContainer.GetCounterValue(r + 1, c + 1) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r + 1, c + 1);
+								curr = _cellContainer.GetCellHead(r + 1, c + 1);
 							}
 							break;
 						case 4:
 							// top-left
 							if (c - 1 >= 0 && r + 1 < row_max ? _cellContainer.GetCounterValue(r + 1, c - 1) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r + 1, c - 1);
+								curr = _cellContainer.GetCellHead(r + 1, c - 1);
 							}
 							break;
 						case 5:
 							// bottom
 							if (r - 1 >= 0 ? _cellContainer.GetCounterValue(r - 1, c) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r - 1, c);
+								curr = _cellContainer.GetCellHead(r - 1, c);
 							}
 							break;
 						case 6:
 							// bottom-right
 							if (c + 1 < coln_max && r - 1 >= 0 ? _cellContainer.GetCounterValue(r - 1, c + 1) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r - 1, c + 1);
+								curr = _cellContainer.GetCellHead(r - 1, c + 1);
 							}
 							break;
 						case 7:
 							// bottom-left
 							if (c - 1 >= 0 && r - 1 >= 0 ? _cellContainer.GetCounterValue(r - 1, c - 1) > 0 : false) {
 								//loop = true;
-								curr = _cellContainer.GetCellRef(r - 1, c - 1);
+								curr = _cellContainer.GetCellHead(r - 1, c - 1);
 							}
 							break;
 						default:
@@ -231,8 +231,8 @@ void Environment::MoveAgents()
 	Location coordinate;
 	for (int i = 0; i < _numAgents; i++) {
 		// Calculating random movement
-		coordinate._x = abs((int)(rand() % _Xmax + _agentRef[i]->GetLocation()._x)) % _Xmax * _stepSize;
-		coordinate._y = abs((int)(rand() % _Ymax + _agentRef[i]->GetLocation()._y)) % _Ymax * _stepSize;
+		coordinate._x = abs((int)(rand() % _domain._x + _agentRef[i]->GetLocation()._x)) % _domain._x * _stepSize;
+		coordinate._y = abs((int)(rand() % _domain._y + _agentRef[i]->GetLocation()._y)) % _domain._y * _stepSize;
 		_agentRef[i]->SetLocation(coordinate);
 		_cellContainer.AddAgent(_agentRef[i]);
 		

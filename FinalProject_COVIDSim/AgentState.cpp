@@ -17,6 +17,7 @@ Agent::Agent(Location& loc, EventAction * ea, unsigned int age)
 
 void Agent::StateTransition()
 {
+	// If transition has been scheduled
 	if (!_scheduled) {
 		// calling function to determine whether to change states and what state
 		_scheduled = _stateTranitionFunction(this);
@@ -101,7 +102,7 @@ void InfectedStateEvent::Execute2()
 }
 bool InfectedStateEvent::StateTransition(Agent* a)
 {
-	SimulationExecutive::GetInstance()->ScheduleEventIn(_timeDelay->GetRV(), new NonSusceptibleStateEvent(a)); // Recoved State
+	SimulationExecutive::GetInstance()->ScheduleEventIn(_timeDelay->GetRV(), new NonSusceptibleStateEvent(a));
 	return true;
 }
 
