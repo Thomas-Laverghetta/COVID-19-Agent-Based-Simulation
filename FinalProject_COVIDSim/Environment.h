@@ -130,7 +130,8 @@ private:
 			_env->MoveAgents();
 			_env->CheckAgentDistances();
 			STAT::UpdateData();
-			ScheduleEventIn(_env->_stepSize, new MoveEvent(_env));
+			if(STAT::_numInfected > 0)
+				ScheduleEventIn(_env->_stepSize, new MoveEvent(_env));
 		}
 	private:
 		Environment* _env;

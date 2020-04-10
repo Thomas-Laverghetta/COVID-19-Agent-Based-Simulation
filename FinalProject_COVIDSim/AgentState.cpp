@@ -1,9 +1,5 @@
 #include "AgentState.h"
 
-unsigned int STAT::_numInfected = 0;
-unsigned int STAT::_numSusceptible = 0;
-unsigned int STAT::_numOther = 0;
-
 // Initializing Static Variables
 unsigned int Agent::_nextId = 0;
 Agent::Agent(Location& loc, EventAction * ea, unsigned int age)
@@ -60,21 +56,33 @@ void Agent::SetParameters(Parameter * list)
 	_list = list;
 }
 
-//---------------------HEALTHY STATES-------------------------
-float SusceptibleStateEvent::_expDistributionRate = 0.5;
-void SusceptibleStateEvent::Execute()
+
+//-----------MASTER EXECUTE------------------
+void AgentEventAction::Execute()
 {
 	// Transitioning states
-	_a->SetHighLevelState(Susceptible);
-	_a->SetLowLevelState("Susceptible");
+	_a->SetHighLevelState(_highLevelState);
+	_a->SetLowLevelState(_lowLevelState);
 	_a->SetScheduled(false);
-	/*STAT::_numSusceptible++; STAT::printSTAT();*/
-	//printf("Agent %i | Low-level %s | High-level %i\n", _a->GetId(), _a->GetLowLevelState().c_str(), _a->GetHighLevelState());
 
 	// Setting Agent Parameters for State
 	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
-	_a->_probabilities = new float;
-	_a->_probabilities[0] = 1.0f; // initializing first value
+	if (_numProbabilities > 0) {
+		_a->_probabilities = new float[_numProbabilities];
+		for (unsigned int i = 0; i < _numProbabilities; i++)
+			_a->_probabilities[i] = 1.0f; // initializing probabilities value
+	}
+	else
+		_a->_probabilities = nullptr;
+
+	// Specific State Event Execution
+	Execute2();
+}
+
+//---------------------HEALTHY STATES-------------------------
+float SusceptibleStateEvent::_expDistributionRate = 0.5;
+void SusceptibleStateEvent::Execute2()
+{
 	_a->_stateTranitionFunction = SusceptibleStateEvent::StateTransition;
 }
 bool SusceptibleStateEvent::StateTransition(Agent* a)
@@ -107,42 +115,19 @@ bool SusceptibleStateEvent::StateTransition(Agent* a)
 
 //---------------------Infected STATES-------------------------
 Distribution* InfectedStateEvent::_timeDelay = new Triangular(5, 10, 25);
-void InfectedStateEvent::Execute()
+void InfectedStateEvent::Execute2()
 {
-	// Transitioning states
-	_a->SetHighLevelState(Infected);
-	_a->SetLowLevelState("Infected");
-	//STAT::_numInfected++; STAT::printSTAT();
-	//printf("Agent %i | Low-level %s | High-level %i\n", _a->GetId(), _a->GetLowLevelState().c_str(), _a->GetHighLevelState());
-
-	// Setting Agent Parameters given state
-	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
-	_a->_probabilities = new float; // NEED TO CHANGE PENDING ON THE NUMBER OF STATES TO TRANSITION TOO
-	_a->_probabilities[0] = 1.0f; // initializing first value
-
 	_a->SetScheduled(StateTransition(_a));
 }
 bool InfectedStateEvent::StateTransition(Agent* a)
 {
-	SimulationExecutive::GetInstance()->ScheduleEventIn(_timeDelay->GetRV(), new RecoveredStateEvent(a)); // Recoved State
+	SimulationExecutive::GetInstance()->ScheduleEventIn(_timeDelay->GetRV(), new NonSusceptibleStateEvent(a)); // Recoved State
 	return true;
 }
 
 //---------------------Recoved STATES-------------------------
-
-void RecoveredStateEvent::Execute()
-{
-	// Transitioning states
-	_a->SetHighLevelState(Other);
-	_a->SetLowLevelState("Recovered");
-	//STAT::_numOther++;	STAT::_numInfected--; STAT::printSTAT();
-	//printf("Agent %i | Low-level %s | High-level %i\n", _a->GetId(), _a->GetLowLevelState().c_str(), _a->GetHighLevelState());
-
-	// Setting Agent Parameters given state
-	delete _a->_probabilities; // deleting any dynamic memory associated with probabilities
-	_a->_probabilities = nullptr; // NEED TO CHANGE PENDING ON THE NUMBER OF STATES TO TRANSITION TOO
-}
-bool RecoveredStateEvent::StateTransition(Agent* a)
+void NonSusceptibleStateEvent::Execute2() { }
+bool NonSusceptibleStateEvent::StateTransition(Agent* a)
 {
 	return true;
 }

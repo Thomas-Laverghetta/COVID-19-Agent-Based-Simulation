@@ -6,6 +6,6 @@ int main() {
 
 	Environment test(10, 2, 6, 4, 2, 1.0, nullptr);
 
-	RunSimulation(15);
+	RunSimulation(100);
 	return 0;
 }

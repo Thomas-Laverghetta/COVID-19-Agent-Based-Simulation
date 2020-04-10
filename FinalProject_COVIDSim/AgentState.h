@@ -4,9 +4,8 @@
 #include "SimObj.h"
 #include "Distribution.h"
 
-
 // Agents highlevel States
-enum SIR_States { Susceptible, Infected, Other };
+enum SIR_States { Susceptible, Infected, NonSusceptible };
 
 // Location Data Structure
 struct Location {
@@ -106,7 +105,6 @@ public:
 	// Get Id
 	unsigned int GetId() { return _id; }
 
-
 	// Calculation Parameters
 	bool (*_stateTranitionFunction)(Agent*);
 	Parameter* _list;
@@ -129,55 +127,90 @@ typedef EventAction* (*NextEvents)(Agent *);
 
 class AgentEventAction : public EventAction, public SimObj {
 public:
-	//virtual bool StateTransition(Agent* a) = 0;
+	void Execute();
+	virtual void Execute2() = 0;
+	void SetAgent(Agent* a) { _a = a; }
 protected:
 	Agent* _a;
+	SIR_States _highLevelState;
+	std::string _lowLevelState;
+	unsigned int _numProbabilities;
 };
 
+// SusceptibleStateEvents
 class SusceptibleStateEvent : public AgentEventAction {
 public:
-	SusceptibleStateEvent() { _a = nullptr;  }
+	SusceptibleStateEvent() { 
+		_a = nullptr; 
+		_highLevelState = Susceptible;
+		_lowLevelState = "Susceptible";
+		_numProbabilities = 1;
+	}
 
-	SusceptibleStateEvent(Agent* a) { _a = a; }
+	SusceptibleStateEvent(Agent* a) { 
+		_a = a; 
+		_highLevelState = Susceptible;
+		_lowLevelState = "Susceptible";
+		_numProbabilities = 1;
+	}
 
 	static EventAction* New(Agent* a) { return new SusceptibleStateEvent(a); }
 
-	void Execute();
-
-	void SetAgent(Agent* a) { _a = a; }
+	virtual void Execute2();
 
 	static bool StateTransition(Agent* a);
 private:
 	static float _expDistributionRate;
 };
 
+// InfectedStateEvents
 class InfectedStateEvent : public AgentEventAction {
 public:
-	InfectedStateEvent() { _a = nullptr;  }
+	InfectedStateEvent() { 
+		_a = nullptr;  
+		_highLevelState = Infected;
+		_lowLevelState = "Infected";
+		_numProbabilities = 0;
+	}
 
-	InfectedStateEvent(Agent* a) { _a = a; }
+	InfectedStateEvent(Agent* a) { 
+		_a = a;
+		_highLevelState = Infected;
+		_lowLevelState = "Infected";
+		_numProbabilities = 0;
+	}
 
 	static EventAction* New(Agent* a) { return new InfectedStateEvent(a); }
 
-	void Execute();
-
-	void SetAgent(Agent* a) { _a = a; }
+	virtual void Execute2();
 
 	static bool StateTransition(Agent* a);
 private:
 	static Distribution* _timeDelay;
 };
 
-class RecoveredStateEvent : public AgentEventAction {
+// NonSusceptibleStateEvents
+class NonSusceptibleStateEvent : public AgentEventAction {
 public:
-	RecoveredStateEvent(Agent* a) { _a = a; }
+	NonSusceptibleStateEvent() {
+		_a = nullptr;
+		_highLevelState = NonSusceptible;
+		_lowLevelState = "NonSusceptible";
+		_numProbabilities = 0;
+	}
 
-	static EventAction* New(Agent* a) { return new RecoveredStateEvent(a); }
+	NonSusceptibleStateEvent(Agent* a) { 
+		_a = a;
+		_highLevelState = NonSusceptible;
+		_lowLevelState = "NonSusceptible";
+		_numProbabilities = 0;
+	}
 
-	void Execute();
+	static EventAction* New(Agent* a) { return new NonSusceptibleStateEvent(a); }
+
+	virtual void Execute2();
 
 	static bool StateTransition(Agent* a);
-private:
 };
 #endif
 
