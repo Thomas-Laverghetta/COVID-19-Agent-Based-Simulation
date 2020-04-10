@@ -225,15 +225,12 @@ void Environment::MoveAgents()
 	Location coordinate;
 	for (int i = 0; i < _numAgents; i++) {
 		// Calculating random movement
-		coordinate._x = abs((int)(rand() % _domain._x + _agentRef[i]->GetLocation()._x)) % _domain._x * _moveFrequency;
-		coordinate._y = abs((int)(rand() % _domain._y + _agentRef[i]->GetLocation()._y)) % _domain._y * _moveFrequency;
+		coordinate._x = (rand() % _domain._x + _agentRef[i]->GetLocation()._x) % _domain._x * _moveFrequency;
+		coordinate._y = (rand() % _domain._y + _agentRef[i]->GetLocation()._y) % _domain._y * _moveFrequency;
 		_agentRef[i]->SetLocation(coordinate);
 		_cellContainer.AddAgent(_agentRef[i]);
-		
 	}
 }
-
-
 
 //---------------STAT----------------
 unsigned int Environment::STAT::_numInfected = 0;
@@ -244,7 +241,7 @@ Environment* Environment::STAT::_env = nullptr;
 void Environment::STAT::UpdateData()
 {
 	Agent** aRef = _env->_agentRef;
-	printf("\n\n\tMove STAT Update | Time %f: \n", GetCurrentSimTime());
+	printf("\n\n\tMove STAT Update | Time %f: \n", SimulationExecutive::GetInstance()->GetTime());
 
 	_numSusceptible = 0;
 	_numInfected = 0;
@@ -258,7 +255,7 @@ void Environment::STAT::UpdateData()
 		else
 			_numOther++;
 
-		printf("| Agent %i | Location (%i, %i) | Low-level-State = %s\n", aRef[i]->GetId(), aRef[i]->GetLocation()._x, aRef[i]->GetLocation()._y, aRef[i]->GetLowLevelState().c_str());
+		//printf("| Agent %i | Location (%i, %i) | Low-level-State = %s\n", aRef[i]->GetId(), aRef[i]->GetLocation()._x, aRef[i]->GetLocation()._y, aRef[i]->GetLowLevelState().c_str());
 	}
 	printf("Tally: { S = %i , I = %i , R = %i }", _numSusceptible, _numInfected, _numOther);
 }

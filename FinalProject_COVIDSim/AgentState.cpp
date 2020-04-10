@@ -69,17 +69,21 @@ bool SusceptibleStateEvent::StateTransition(Agent* a)
 	float H = a->_probabilities[0] != 1.0f ? 1-a->_probabilities[0] : 1.0f;
 	float I_prob = 0.0f;
 	unsigned int RNG;
+	float tempProb_I;
 	for (int i = 0; i < dists->size(); i++) {
 		// Calculating probability of Infected given distance
 		I_prob = exp(-_expDistributionRate * (*dists)[i]) - exp(-FLT_MAX) - 0.05;
 
 		// Calculating non normalized probability
-		a->_probabilities[0] = a->_probabilities[0] * I_prob;
+		tempProb_I = a->_probabilities[0] * I_prob;
 		H = H * (1 - I_prob);
 
 		// Normalizing
-		a->_probabilities[0] = a->_probabilities[0] / (a->_probabilities[0] + H);
-		H = H / (a->_probabilities[0] + H);
+		tempProb_I = tempProb_I / (tempProb_I + H);
+		H = H / (tempProb_I + H);
+
+		if (tempProb_I > a->_probabilities[0])
+			a->_probabilities[0] = tempProb_I;
 
 		RNG = rand() % 101;
 		if (RNG > H*100) {

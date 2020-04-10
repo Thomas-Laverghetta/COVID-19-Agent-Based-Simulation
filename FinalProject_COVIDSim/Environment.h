@@ -130,6 +130,7 @@ private:
 		void Execute() {
 			_env->MoveAgents();
 			_env->CheckAgentDistances();
+			SimulationExecutive::GetInstance();
 			STAT::UpdateData();
 			if(STAT::_numInfected > 0)
 				ScheduleEventIn(_env->_moveFrequency, this);
