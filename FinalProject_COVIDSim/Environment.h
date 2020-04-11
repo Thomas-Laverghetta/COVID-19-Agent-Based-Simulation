@@ -128,12 +128,21 @@ private:
 		inline MoveEvent(Environment* env) : _env(env) {};
 
 		void Execute() {
+			// Moving agents
 			_env->MoveAgents();
+
+			// Checking exposure
 			_env->CheckAgentDistances();
-			SimulationExecutive::GetInstance();
+
+			// Updating statistics
 			STAT::UpdateData();
+
+			// Determing whether to continue moving (any more people infected)
 			if(STAT::_numInfected > 0)
 				ScheduleEventIn(_env->_moveFrequency, this);
+
+			// Disease Influences that need to be updated every move
+			_env->_envDI->UpdateInfluences();
 		}
 	private:
 		Environment* _env;

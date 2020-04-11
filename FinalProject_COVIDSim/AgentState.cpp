@@ -95,7 +95,7 @@ bool SusceptibleStateEvent::StateTransition(Agent* a)
 }
 
 //---------------------Infected STATES-------------------------
-Distribution* InfectedStateEvent::_timeDelay = new Triangular(5, 10, 25);
+Distribution* InfectedStateEvent::_timeDelay = new Triangular(5, 15, 25);
 void InfectedStateEvent::Execute2()
 {
 	// Setting State Transition function

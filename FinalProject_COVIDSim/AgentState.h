@@ -20,6 +20,7 @@ struct Location {
 */
 class DiseaseInfluence {
 public:
+	// Any disease influences that need to be updated every step in the simulation
 	virtual void UpdateInfluences() = 0;
 };
 
@@ -56,6 +57,7 @@ public:
 	}
 	~Distance() {
 		delete _distance;
+		delete _highLevelState;
 	}
 private:
 	float* _distance;
