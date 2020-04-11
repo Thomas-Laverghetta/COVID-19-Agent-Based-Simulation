@@ -1,4 +1,8 @@
 #include "AgentState.h"
+//---------------STAT----------------
+unsigned int STAT::_numInfected = 0;
+unsigned int STAT::_numSusceptible = 0;
+unsigned int STAT::_numOther = 0;
 
 // Initializing Static Variables
 unsigned int Agent::_nextId = 0;
@@ -11,6 +15,9 @@ Agent::Agent(Location& loc, EventAction * ea, unsigned int age)
 	_location = loc;
 	_age = age;
 	
+	// For Statistics
+	_highLevelState = Initialization;
+
 	// setting the initial state of the agent: High and Low states
 	ScheduleEventAt(0, ea); 
 }

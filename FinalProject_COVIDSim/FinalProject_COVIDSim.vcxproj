@@ -139,6 +139,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AgentState.cpp" />
+    <ClCompile Include="DerivEnv.cpp" />
     <ClCompile Include="Distribution.cpp" />
     <ClCompile Include="Environment.cpp" />
     <ClCompile Include="EventSet.cpp" />
@@ -148,6 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgentState.h" />
+    <ClInclude Include="DerivEnv.h" />
     <ClInclude Include="Distribution.h" />
     <ClInclude Include="Environment.h" />
     <ClInclude Include="EventAction.h" />

@@ -4,8 +4,19 @@
 #include "SimObj.h"
 #include "Distribution.h"
 
+// Holds statistics from simulation
+class STAT {
+public:
+	static unsigned int _numInfected;
+	static unsigned int _numSusceptible;
+	static unsigned int _numOther;
+	static void printSTAT() {
+		printf("Tally: { S = %i , I = %i , R = %i }", _numSusceptible, _numInfected, _numOther);
+	}
+};
+
 // Agents highlevel States
-enum SIR_States { Susceptible, Infected, NonSusceptible };
+enum SIR_States { Susceptible, Infected, NonSusceptible, Initialization };
 
 // Location Data Structure
 struct Location {
@@ -82,7 +93,25 @@ public:
 	SIR_States GetHighLevelState() { return _highLevelState; }
 
 	// Setting High Level State (Infected, Susceptible, or other) 
-	void SetHighLevelState(SIR_States subState) { _highLevelState = subState; }
+	void SetHighLevelState(SIR_States subState) { 
+		// Prelude Stat
+		if (_highLevelState == Susceptible)
+			STAT::_numSusceptible--;
+		else if (_highLevelState == Infected)
+			STAT::_numInfected--;
+		else
+			STAT::_numOther--;
+
+		_highLevelState = subState; 
+
+		// Epilogue Stat
+		if (_highLevelState == Susceptible)
+			STAT::_numSusceptible++;
+		else if (_highLevelState == Infected)
+			STAT::_numInfected++;
+		else
+			STAT::_numOther++;
+	}
 
 	// Setting Low Level State
 	void SetLowLevelState(std::string state) { _lowLevelState = state; }
@@ -132,6 +161,10 @@ public:
 	
 	// Specific Execute
 	virtual void Execute2() = 0;
+
+	// New Function
+	virtual AgentEventAction* New() = 0;
+	virtual AgentEventAction* New(Agent * a) = 0;
 	
 	// Setting Agent variable
 	void SetAgent(Agent* a) { _a = a; }
@@ -159,7 +192,8 @@ public:
 		_numProbabilities = 1;
 	}
 
-	static EventAction* New(Agent* a) { return new SusceptibleStateEvent(a); }
+	AgentEventAction* New(Agent* a) { return new SusceptibleStateEvent(a); }
+	AgentEventAction* New() { return new SusceptibleStateEvent; }
 
 	virtual void Execute2();
 
@@ -185,7 +219,8 @@ public:
 		_numProbabilities = 0;
 	}
 
-	static EventAction* New(Agent* a) { return new InfectedStateEvent(a); }
+	AgentEventAction* New(Agent* a) { return new InfectedStateEvent(a); }
+	AgentEventAction* New() { return new InfectedStateEvent; }
 
 	virtual void Execute2();
 
@@ -211,7 +246,8 @@ public:
 		_numProbabilities = 0;
 	}
 
-	static EventAction* New(Agent* a) { return new NonSusceptibleStateEvent(a); }
+	AgentEventAction* New(Agent* a) { return new NonSusceptibleStateEvent(a); }
+	AgentEventAction* New() { return new NonSusceptibleStateEvent; }
 
 	virtual void Execute2();
 
