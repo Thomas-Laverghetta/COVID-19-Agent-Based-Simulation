@@ -38,11 +38,12 @@ protected:
 	class AgentContainer {
 	public:
 		AgentContainer() {
-			// Zero Node
-			_head = new Node;
+			_head = nullptr;
+			_tail = nullptr;
+			_numAgents = 0;
+			_agentInEnvDuration = nullptr;
 		}
 		struct Node {
-			Node() : _a(nullptr), _next(nullptr) { }
 			Node(Agent* a) : _a(a), _next(nullptr){	}
 			Agent* _a;
 			Node* _next;
@@ -54,10 +55,10 @@ protected:
 		}
 
 		// Places Agent in list and Schedule Departure
-		void AddAgent(Agent* a, Environment * env);
+		void AddAgent(Agent* a, Environment* env);
 
 		// Will get nextNode after previousNode and remove from list
-		Agent * GetAndRemoveAgent(Node* previousNode);
+		Agent * RemoveAgent();
 		
 		// Creates Agents and schedules departure time 
 		void CreateAgents(unsigned int numSusceptible, unsigned int numInfected, SusceptibleStateEvent* SuscepibleEvent, InfectedStateEvent* InfectedEvent, Environment * env);
@@ -73,7 +74,8 @@ protected:
 		// destructor
 		~AgentContainer();
 	private:
-		Node* _head;
+		Node* _head; 
+		Node* _tail;
 		unsigned int _numAgents;
 		Distribution* _agentInEnvDuration;
 	};
@@ -143,15 +145,14 @@ protected:
 	};
 	class DepartEvent : public EventAction {
 	public:
-		DepartEvent(AgentContainer::Node* previousNode, Environment* env) 
-			: _previousNode(previousNode), _env(env) {}
+		DepartEvent(Environment* env) 
+			: _env(env) {}
 
 		// Gets agent from list, then sends agent to next environment
 		void Execute() {
-			_env->NextEnvironment()->Arrive(_env->_agentList.GetAndRemoveAgent(_previousNode));
+			_env->NextEnvironment()->Arrive(_env->_agentList.RemoveAgent());
 		}
 	private:
-		AgentContainer::Node* _previousNode;
 		Environment* _env;
 	};
 

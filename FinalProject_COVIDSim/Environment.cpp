@@ -58,35 +58,48 @@ void Environment::SetNextEnvironment(Environment** nextEnvArray, float* nextEnvP
 
 //--------------------------------DATA_Struct----------------------------
 // Agent Container
-void Environment::AgentContainer::AddAgent(Agent* a, Environment * env)
+void Environment::AgentContainer::AddAgent(Agent* a, Environment* env)
 {
 	// Creating new node
 	Node* node = new Node(a);
 	_numAgents++;
 	
-	// Point new node to head->next
-	node->_next = _head->_next;
+	// If no agents in list
+	if (!_head) {
+		_tail = _head = node;
+		_tail->_next = _head;
+	}
+	else {
+		// Point new node to head->next
+		node->_next = _head->_next;
 
-	// Head points at new node
-	_head->_next = node;
-	
+		// Head points at new node
+		_head->_next = node;
+
+		// If head and tail are pointing the same node
+		if (_head == _tail)
+			_tail = _head->_next;
+	}
+
 	// Scheduling when Agent Leaves
-	if(!_agentInEnvDuration)
-		ScheduleEventIn(_agentInEnvDuration->GetRV(), new DepartEvent(_head, env));
+	// If _agentInEnvDuration is null then this is a terminating environment
+	if(_agentInEnvDuration)
+		ScheduleEventIn(_agentInEnvDuration->GetRV(), new DepartEvent(env));
 }
 
-Agent* Environment::AgentContainer::GetAndRemoveAgent(Node* previousNode)
+Agent* Environment::AgentContainer::RemoveAgent()
 {
-	Agent* a = previousNode->_next->_a;
-	Node* curr = previousNode->_next;
-	previousNode->_next = curr->_next;
-
-	// Deleting current node and reducing number of agents
-	delete curr;
-	curr = nullptr;
-	_numAgents--;
-
-	// returning the agent
+	Agent* a = _head->_a;
+	if (!(_tail == _head)) {
+		_tail->_next = _head->_next;
+		delete _head;
+		_head = _tail->_next;
+	}
+	else {
+		delete _head;
+		_tail = nullptr;
+		_head = nullptr;
+	}
 	return a;
 }
 
@@ -102,11 +115,9 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 		env->_cellContainer.AddAgent(a);
 	AddAgent(a, env);
 
-	Agent::AgentEventAction* aea;
 	for (int i = 1; i < numSusceptible; i++){
 		coordinate._x = rand() % env->_domain._x; coordinate._y = rand() % env->_domain._y; // randoming choosing location with in domain
-		aea = SuscepibleEvent->New();
-		a = new Agent(coordinate, aea, rand() % 100 + 1);
+		a = new Agent(coordinate, SuscepibleEvent->New(), rand() % 100 + 1);
 		if (env->_cellResolution > 0)
 			env->_cellContainer.AddAgent(a);
 		AddAgent(a, env);
@@ -121,8 +132,7 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 
 	for (int i = 1; i < numSusceptible; i++) {
 		coordinate._x = rand() % env->_domain._x; coordinate._y = rand() % env->_domain._y; // randoming choosing location with in domain
-		aea = InfectedEvent->New();
-		a = new Agent(coordinate, aea, rand() % 100 + 1);
+		a = new Agent(coordinate, InfectedEvent->New(), rand() % 100 + 1);
 		if (env->_cellResolution > 0)
 			env->_cellContainer.AddAgent(a);
 		AddAgent(a, env);
