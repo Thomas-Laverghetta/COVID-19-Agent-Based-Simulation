@@ -1,8 +1,12 @@
 #ifndef AGENTSTATE_H
 #define AGENTSTATE_H
 #include <string>
-#include "SimObj.h"
+#include<tuple> // for tuple 
 #include "Distribution.h"
+#include "SimulationExecutive.h"
+
+// Agents highlevel States
+enum SIR_States { Susceptible, Infected, NonSusceptible, Initialization };
 
 // Holds statistics from simulation
 class STAT {
@@ -11,12 +15,9 @@ public:
 	static unsigned int _numSusceptible;
 	static unsigned int _numOther;
 	static void printSTAT() {
-		printf("Tally: { S = %i , I = %i , R = %i }", _numSusceptible, _numInfected, _numOther);
+		printf("Tally: { S = %i , I = %i , R = %i } | Time %f", _numSusceptible, _numInfected, _numOther, GetSimulationTime());
 	}
 };
-
-// Agents highlevel States
-enum SIR_States { Susceptible, Infected, NonSusceptible, Initialization };
 
 // Location Data Structure
 struct Location {
@@ -79,48 +80,78 @@ private:
 };
 
 // Agents
-class Agent : public SimObj {
+class Agent {
 public:
-	Agent(Location& loc, EventAction * ea, unsigned int age);
+	class AgentEventAction : public EventAction {
+	public:
+		// General Execute
+		void Execute();
+
+		// Specific Execute
+		virtual void Execute2() = 0;
+
+		// New Function
+		virtual AgentEventAction* New() = 0;
+		virtual AgentEventAction* New(Agent* a) = 0;
+
+		// Determines the next state to transition too (bool will state whether it transition was scheduled)
+		virtual	bool StateTransitionProcess() = 0;
+
+		// Setting Agent variable
+		void SetAgent(Agent* a) { _a = a; }
+
+		// Setting List
+		void SetParameterList(Parameter* list) {
+			_list = list;
+		}
+
+		// Gets low level that is defined by the developer
+		std::string GetLowLevelState() { return _lowLevelState; }
+
+		// Gets the agents low level state (infected, Susceptible, or other state)
+		SIR_States GetHighLevelState() { return _highLevelState; }
+
+		// Setting High Level State (Infected, Susceptible, or other) and setting statistics
+		void SetHighLevelState(SIR_States subState);
+
+		// Setting Low Level State
+		void SetLowLevelState(std::string state) { _lowLevelState = state; }
+	protected:
+		Agent* _a;
+		SIR_States _highLevelState;
+		std::string _lowLevelState;
+		Parameter* _list;
+
+		// Next States
+		std::pair<std::string, Distribution*>* _nextStates;
+		float* _nextProbabilities;
+		unsigned int _numNextStates;
+	};
+
+
+	// Constructor for initial postiion, first state event, and age of the agent
+	Agent(Location& loc, AgentEventAction* aea, unsigned int age);
 
 	// Runs State Transition Function pointer to determine next state transition to occur
 	void StateTransition();
 
 	// Gets low level that is defined by the developer
-	std::string GetLowLevelState() { return _lowLevelState; }
+	std::string GetLowLevelState() { return _aea->GetLowLevelState(); }
 
 	// Gets the agents low level state (infected, Susceptible, or other state)
-	SIR_States GetHighLevelState() { return _highLevelState; }
+	SIR_States GetHighLevelState() { return _aea->GetHighLevelState(); }
 
-	// Setting High Level State (Infected, Susceptible, or other) 
-	void SetHighLevelState(SIR_States subState) { 
-		// Prelude Stat
-		if (_highLevelState == Susceptible)
-			STAT::_numSusceptible--;
-		else if (_highLevelState == Infected)
-			STAT::_numInfected--;
-		else
-			STAT::_numOther--;
-
-		_highLevelState = subState; 
-
-		// Epilogue Stat
-		if (_highLevelState == Susceptible)
-			STAT::_numSusceptible++;
-		else if (_highLevelState == Infected)
-			STAT::_numInfected++;
-		else
-			STAT::_numOther++;
-	}
+	// Setting High Level State (Infected, Susceptible, or other) and setting statistics
+	void SetHighLevelState(SIR_States subState) { _aea->SetHighLevelState(subState); }
 
 	// Setting Low Level State
-	void SetLowLevelState(std::string state) { _lowLevelState = state; }
+	void SetLowLevelState(std::string state) { _aea->SetLowLevelState(state); }
 
 	// Setting Diesease Influence
-	static void SetDiseaseInfluence(DiseaseInfluence* DI) { _DI = DI; }
+	static void SetDiseaseInfluence(DiseaseInfluence* DI) { _dI = DI; }
 
 	// Parameters (e.g., Distance)
-	void SetParameters(Parameter* list) { _list = list; }
+	void SetParameters(Parameter* list);
 
 	// Get location
 	Location& GetLocation() { return _location; }
@@ -128,68 +159,40 @@ public:
 	// Setting Location
 	void SetLocation(Location& loc) { _location = loc; }
 
-	// Setting Schedule
+	// Setting the event schedule for events
 	void SetScheduled(bool sch) { _scheduled = sch; }
 	
-	// Get Id
+	// Get Agent Id
 	unsigned int GetId() { return _id; }
 
-	// Calculation Parameters
-	bool (*_stateTranitionFunction)(Agent*);
-	Parameter* _list;
-	float* _probabilities;
+	// Setting Curr State Event
+	void SetAgentEventAction(AgentEventAction* aea);
 private:
 	// state Variables
 	Location _location;
 	unsigned int _age;
 	unsigned int _id;
-	static DiseaseInfluence* _DI;
-	SIR_States _highLevelState;
-	std::string _lowLevelState;
+	static DiseaseInfluence* _dI;
+	AgentEventAction* _aea;
 	static unsigned int _nextId;
 	bool _scheduled;
 };
 
-//typedef float* (*StateTransitionFunction)(Agent*);
-typedef bool (*StateTransitionFunction)(Agent*);
-typedef EventAction* (*NextEvents)(Agent *);
-
-class AgentEventAction : public EventAction, public SimObj {
-public:
-	// General Execute
-	void Execute();
-	
-	// Specific Execute
-	virtual void Execute2() = 0;
-
-	// New Function
-	virtual AgentEventAction* New() = 0;
-	virtual AgentEventAction* New(Agent * a) = 0;
-	
-	// Setting Agent variable
-	void SetAgent(Agent* a) { _a = a; }
-protected:
-	Agent* _a;
-	SIR_States _highLevelState;
-	std::string _lowLevelState;
-	unsigned int _numProbabilities;
-};
-
 // SusceptibleStateEvents
-class SusceptibleStateEvent : public AgentEventAction {
+class SusceptibleStateEvent : public Agent::AgentEventAction {
 public:
 	SusceptibleStateEvent() { 
 		_a = nullptr; 
 		_highLevelState = Susceptible;
 		_lowLevelState = "Susceptible";
-		_numProbabilities = 1;
+		//_numProbabilities = 1;
 	}
 
 	SusceptibleStateEvent(Agent* a) { 
 		_a = a; 
 		_highLevelState = Susceptible;
 		_lowLevelState = "Susceptible";
-		_numProbabilities = 1;
+		//_numProbabilities = 1;
 	}
 
 	AgentEventAction* New(Agent* a) { return new SusceptibleStateEvent(a); }
@@ -197,26 +200,26 @@ public:
 
 	virtual void Execute2();
 
-	static bool StateTransition(Agent* a);
+	bool StateTransitionProcess();
 private:
 	static float _expDistributionRate;
 };
 
 // InfectedStateEvents
-class InfectedStateEvent : public AgentEventAction {
+class InfectedStateEvent : public Agent::AgentEventAction {
 public:
 	InfectedStateEvent() { 
 		_a = nullptr;  
 		_highLevelState = Infected;
 		_lowLevelState = "Infected";
-		_numProbabilities = 0;
+		//_numProbabilities = 0;
 	}
 
 	InfectedStateEvent(Agent* a) { 
 		_a = a;
 		_highLevelState = Infected;
 		_lowLevelState = "Infected";
-		_numProbabilities = 0;
+	/*	_numProbabilities = 0;*/
 	}
 
 	AgentEventAction* New(Agent* a) { return new InfectedStateEvent(a); }
@@ -224,26 +227,24 @@ public:
 
 	virtual void Execute2();
 
-	static bool StateTransition(Agent* a);
-private:
-	static Distribution* _timeDelay;
+	bool StateTransitionProcess();
 };
 
 // NonSusceptibleStateEvents
-class NonSusceptibleStateEvent : public AgentEventAction {
+class NonSusceptibleStateEvent : public Agent::AgentEventAction {
 public:
 	NonSusceptibleStateEvent() {
 		_a = nullptr;
 		_highLevelState = NonSusceptible;
 		_lowLevelState = "NonSusceptible";
-		_numProbabilities = 0;
+		//_numProbabilities = 0;
 	}
 
 	NonSusceptibleStateEvent(Agent* a) { 
 		_a = a;
 		_highLevelState = NonSusceptible;
 		_lowLevelState = "NonSusceptible";
-		_numProbabilities = 0;
+		/*_numProbabilities = 0;*/
 	}
 
 	AgentEventAction* New(Agent* a) { return new NonSusceptibleStateEvent(a); }
@@ -251,7 +252,88 @@ public:
 
 	virtual void Execute2();
 
-	static bool StateTransition(Agent* a);
+	bool StateTransitionProcess();
+};
+
+// State Mapping
+class StateMap {
+private:
+	std::pair <std::string, Distribution *>** _nextState;
+	float** _probabilities;
+	Agent::AgentEventAction** _newAgentEvents;
+	std::string* _stateArray;
+	unsigned int _stateIndex;
+	unsigned int* _numNextStates;
+	unsigned int _numStates;
+	static StateMap* _instance;
+public:
+	StateMap() : _nextState(nullptr), _newAgentEvents(nullptr), _stateArray(nullptr), _stateIndex(0), _numNextStates(nullptr), _probabilities(nullptr) {}
+
+	static StateMap* GetInstance() {
+		if (_instance == nullptr)
+			_instance = new StateMap;
+		return _instance;
+	}
+
+	void Initialize(unsigned int numStates) {
+		_stateArray = new std::string[numStates];
+		_newAgentEvents = new Agent::AgentEventAction * [numStates];
+		_nextState = new std::pair < std::string, Distribution *>* [numStates];
+		_numNextStates = new unsigned int[numStates];
+		_probabilities = new float*[numStates];
+		_numStates = numStates;
+	}
+
+	void RegisterStateToNextState(std::string currState, std::tuple < std::string, float, Distribution *>* nextStates, unsigned int numNextStates) {
+		// Registering the state name
+		_stateArray[_stateIndex] = currState;
+
+		// copy information
+		for (int i = 0; i < numNextStates; i++) {
+			// registering next states
+			_nextState[_stateIndex][i].first = get<0>(nextStates[i]);
+			_nextState[_stateIndex][i].second = get<2>(nextStates[i]);
+			_probabilities[_stateIndex][i] = get<1>(nextStates[i]);
+		}
+
+		// Registering the number of next states
+		_numNextStates[_stateIndex] = numNextStates;
+	}
+
+	void RegisterStatesToEvents(Agent::AgentEventAction** newAgentEvents) {
+		// Registering events associated with states 
+		_newAgentEvents = newAgentEvents;
+	}
+
+	std::pair<std::string, Distribution *>* GetNextStates(std::string currState, unsigned int& numPairs, float* probabilities) {
+		for (int i = 0; i < _numStates; i++)
+		{
+			if (_stateArray[i] == currState)
+			{
+				// Number of pairs 
+				numPairs = _numNextStates[i];
+
+				// copy probabilities
+				probabilities = new float[numPairs];
+				for (int j = 0; j < numPairs; j++)
+					probabilities[j] = _probabilities[i][j]; // full copy of values
+
+				// returning the pairs
+				return _nextState[i];
+			}
+		}
+		printf("ERROR at GetNextStates\a\n");
+		exit(0);
+	}
+
+	Agent::AgentEventAction* GetAgentEventAction(std::string nextState) {
+		for (int i = 0; i < _numStates; i++) {
+			if (_stateArray[i] == nextState)
+				return _newAgentEvents[i];
+		}
+		printf("ERROR at GetAgentEventAction\a\n");
+		exit(0);
+	}
 };
 #endif
 

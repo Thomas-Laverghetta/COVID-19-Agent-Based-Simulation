@@ -1,7 +1,7 @@
 #ifndef EVENTSET_H
 #define EVENTSET_H
 
-#include "EventAction.h"
+#include "SimulationExecutive.h"
 
 typedef double Time;
 

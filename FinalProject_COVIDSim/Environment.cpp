@@ -31,7 +31,7 @@ void Environment::MoveAgents()
 Environment * Environment::NextEnvironment()
 {
 	// If num environments next is zero, then return to self
-	if (_numEnvironments > 0) {
+	if (_nextEnvironments) {
 		unsigned int RNG = rand() % 101;
 		unsigned int i = -1;
 		float temp = 0;
@@ -72,7 +72,7 @@ void Environment::AgentContainer::AddAgent(Agent* a, Environment * env)
 	
 	// Scheduling when Agent Leaves
 	if(!_agentInEnvDuration)
-		SimulationExecutive::GetInstance()->ScheduleEventIn(_agentInEnvDuration->GetRV(), new DepartEvent(_head, env));
+		ScheduleEventIn(_agentInEnvDuration->GetRV(), new DepartEvent(_head, env));
 }
 
 Agent* Environment::AgentContainer::GetAndRemoveAgent(Node* previousNode)
@@ -100,17 +100,15 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 	a = new Agent(coordinate, SuscepibleEvent, rand() % 100 + 1);
 	if (env->_cellResolution > 0)
 		env->_cellContainer.AddAgent(a);
-	SuscepibleEvent->SetAgent(a);
 	AddAgent(a, env);
 
-	AgentEventAction* aea;
+	Agent::AgentEventAction* aea;
 	for (int i = 1; i < numSusceptible; i++){
 		coordinate._x = rand() % env->_domain._x; coordinate._y = rand() % env->_domain._y; // randoming choosing location with in domain
 		aea = SuscepibleEvent->New();
 		a = new Agent(coordinate, aea, rand() % 100 + 1);
 		if (env->_cellResolution > 0)
 			env->_cellContainer.AddAgent(a);
-		aea->SetAgent(a);
 		AddAgent(a, env);
 	}
 
@@ -119,16 +117,14 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 	a = new Agent(coordinate, InfectedEvent, rand() % 100 + 1);
 	if (env->_cellResolution > 0)
 		env->_cellContainer.AddAgent(a);
-	InfectedEvent->SetAgent(a);
 	AddAgent(a, env);
 
 	for (int i = 1; i < numSusceptible; i++) {
 		coordinate._x = rand() % env->_domain._x; coordinate._y = rand() % env->_domain._y; // randoming choosing location with in domain
 		aea = InfectedEvent->New();
-		a = new Agent(coordinate, InfectedEvent, rand() % 100 + 1);
+		a = new Agent(coordinate, aea, rand() % 100 + 1);
 		if (env->_cellResolution > 0)
 			env->_cellContainer.AddAgent(a);
-		aea->SetAgent(a);
 		AddAgent(a, env);
 	}
 }

@@ -1,6 +1,5 @@
 #ifndef ENV_H
 #define ENV_H
-#include "SimObj.h"
 #include "AgentState.h"
 #include <time.h>       /* time */
 
@@ -11,7 +10,7 @@ public:
 		if (!STATScheduled) {
 			/* initialize random seed: */
 			srand(time(NULL));
-			SimulationExecutive::GetInstance()->ScheduleEventAt(1.0f, new STATEvent);
+			ScheduleEventAt(1.0f, new STATEvent);
 			STATScheduled = true;
 		}
 
@@ -19,13 +18,13 @@ public:
 
 		// if move frequency is negative, then no movement (e.g., agent is at home and not interacting)
 		if (_moveFrequency >= 0)
-			SimulationExecutive::GetInstance()->ScheduleEventAt(0, new MoveEvent(this));
+			ScheduleEventAt(0, new MoveEvent(this));
 	}
 
 	unsigned int GetNumAgentsInEnvironment();
 
+	// Setting Next 
 	void SetNextEnvironment(Environment** nextEnvArray, float* nextEnvProbs);
-	
 protected:
 	//--------------------------------FUNCT---------------------------------
 	void Arrive(Agent* a);
@@ -137,7 +136,7 @@ protected:
 			_env->_envDI->UpdateInfluences(); 
 
 			// Scheduling next move
-			SimulationExecutive::GetInstance()->ScheduleEventIn(_env->_moveFrequency, this);
+			ScheduleEventIn(_env->_moveFrequency, this);
 		}
 	private:
 		Environment* _env;
@@ -168,7 +167,6 @@ protected:
 	// Next Environment
 	Environment** _nextEnvironments;
 	float* _nextEnvironmentProbabilities;
-	unsigned int _numEnvironments;
 
 private:
 	// Call STAT Update every cycle
@@ -177,7 +175,7 @@ private:
 		STATEvent() {}
 		void Execute() {
 			STAT::printSTAT();
-			SimulationExecutive::GetInstance()->ScheduleEventIn(1.0f, this);
+			ScheduleEventIn(1.0f, this);
 		}
 	};
 

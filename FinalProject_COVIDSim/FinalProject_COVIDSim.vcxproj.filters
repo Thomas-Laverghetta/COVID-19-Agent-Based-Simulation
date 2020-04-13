@@ -21,9 +21,6 @@
     <ClCompile Include="EventSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimObj.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="SimulationExecutive.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -44,9 +41,6 @@
     <ClInclude Include="Distribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EventAction.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="EventSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -54,9 +48,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Set.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimObj.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SimulationExecutive.h">
@@ -69,6 +60,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DerivEnv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Stopwatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
