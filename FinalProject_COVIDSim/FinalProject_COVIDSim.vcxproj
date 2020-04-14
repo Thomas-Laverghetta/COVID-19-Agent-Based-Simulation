@@ -139,23 +139,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AgentState.cpp" />
+    <ClCompile Include="DerivEnv.cpp" />
     <ClCompile Include="Distribution.cpp" />
     <ClCompile Include="Environment.cpp" />
     <ClCompile Include="EventSet.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="SimObj.cpp" />
     <ClCompile Include="SimulationExecutive.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgentState.h" />
+    <ClInclude Include="DerivEnv.h" />
     <ClInclude Include="Distribution.h" />
     <ClInclude Include="Environment.h" />
     <ClInclude Include="EventAction.h" />
     <ClInclude Include="EventSet.h" />
     <ClInclude Include="FIFO.h" />
     <ClInclude Include="Set.h" />
-    <ClInclude Include="SimObj.h" />
     <ClInclude Include="SimulationExecutive.h" />
+    <ClInclude Include="Stopwatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

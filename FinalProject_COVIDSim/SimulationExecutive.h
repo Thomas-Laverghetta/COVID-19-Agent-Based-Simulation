@@ -1,50 +1,33 @@
-#ifndef SIMULATION_EXECUTIVE_H
-#define SIMULATION_EXECUTIVE_H
+#pragma once
+#include <iostream>
+#include<fstream>
 
-#include "EventAction.h"
-#include "EventSet.h"
 
-/*
-    This implementation will use singleton approach
-*/
+using namespace std;
+
+class StatData
+{
+public:
+	static std::ofstream _statData;
+};
+
+
 typedef double Time;
 
-class SimulationExecutive
+class EventAction
 {
-private:
-    // Singleton Data  
-    SimulationExecutive(){ m_SimTime = 0.0f;};
-    ~SimulationExecutive(){};
-    static SimulationExecutive * m_instance;
-
-    // Simualation data
-    Time m_SimTime;
-    EventSet m_EventSet;
 public:
-    // SINGLETON
-    static SimulationExecutive * GetInstance(){
-        if(m_instance == nullptr)
-            m_instance = new SimulationExecutive();
-        
-        return m_instance;
-    }
-
-    // Get simulation time
-    Time GetTime() {return m_SimTime;}
-
-    // Schedules event in delta-time from current sim time
-    void ScheduleEventIn(const Time& deltaT, EventAction * ea);
-
-    // Schedulees event at t sim time
-    void ScheduleEventAt(const Time& t, EventAction * ea);
-
-    /*
-        runs simulation executive
-        defualt value of -1 indicates run until all events executed
-    */
-    void RunSim(Time T = -1);
-
-    // initializes simulation
-    void InitSimulation();
+	EventAction() {};
+	virtual void Execute() = 0;
 };
-#endif
+
+Time GetSimulationTime();
+void RunSimulation(Time endTime);
+void RunSimulation(int numEvExe);
+void ScheduleEventIn(Time delta, EventAction *ea);
+void ScheduleEventAt(Time time, EventAction *ea);
+
+
+
+//Testing Functionality
+void FlipSteady(); //Used for testing, default steady set to false;
