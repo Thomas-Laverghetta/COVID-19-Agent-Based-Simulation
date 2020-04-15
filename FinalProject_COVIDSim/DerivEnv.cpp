@@ -4,13 +4,13 @@
 	create all agents in simulation, and
 	schedule next move event
 */
-DerivEnv::DerivEnv(unsigned int numSusceptible, unsigned int numInfected, unsigned int Ymax, unsigned int Xmax,
-	unsigned int cellResolution, Time moveFrequency, std::string name, Distribution* agentInEnvDuration) 
+DerivEnv::DerivEnv(std::string name, unsigned int numSusceptible, unsigned int numInfected, unsigned int Ymax, unsigned int Xmax,
+	unsigned int cellResolution, Time moveFrequency, Distribution* agentInEnvDuration)
 	: Environment{ name, agentInEnvDuration, moveFrequency, cellResolution,  Ymax, Xmax, numSusceptible, numInfected}
 {
 	// initializing Disease Influence Variables 
-	_envDI = nullptr; ///////////////////////////////////////
-	Agent::SetDiseaseInfluence(_envDI);
+	//_envDI = nullptr; ///////////////////////////////////////
+	//Agent::SetDiseaseInfluence(_envDI);
 }
 
 class AgentTracker {
@@ -172,8 +172,8 @@ void DerivEnv::CheckAgentDistances()
 									curr_I->_aRef->GetLowLevelState());
 								curr_I = curr_I->_next;
 							}
-							curr_H->_aRef->SetParameters(&distance);
-							curr_H->_aRef->StateTransition();
+							/*curr_H->_aRef->SetParameters();*/
+							curr_H->_aRef->StateTransition(&distance);
 							curr_I = InfectedAgents.GetHead();
 							curr_H = curr_H->_next;
 							distance.resetIndex(); // resets index on float[] for next Healthy agent

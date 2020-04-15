@@ -43,10 +43,10 @@ public:
 	Normal(double mean, double stdev);
 	double GetRV();
 private:
-	bool _isSavedRV;
+	//bool _isSavedRV;
 	double _savedRV;
 	double _mean;
-	double _variance;
+	double _stdev;
 };
 
 class Poisson : public Distribution

@@ -9,6 +9,8 @@ public:
 		unsigned int numSusceptible, unsigned int numInfected)
 		: _envName(EnvName), _moveFrequency(moveFrequency), _cellResolution(cellResolution)
 	{
+		_outfile.open(EnvName + "OUTPUT.txt");
+		 
 		// Setting domain
 		_domain._x = Xmax;
 		_domain._y = Ymax;
@@ -159,7 +161,7 @@ protected:
 				ScheduleEventIn(_env->_moveFrequency, this);
 
 			// Diplay Statistics
-			STAT::printSTAT();
+			STAT::printSTAT(_env->_outfile);
 		}
 	private:
 		Environment* _env;
@@ -191,17 +193,6 @@ protected:
 	float* _nextEnvironmentProbabilities;
 
 private:
-	//// Call STAT Update every cycle
-	//class STATEvent : public EventAction {
-	//public:
-	//	STATEvent() {}
-	//	void Execute() {
-	//		STAT::printSTAT();
-	//		ScheduleEventIn(1.0f, this);
-	//	}
-	//};
-
-	// Determing if STAT Event loop was executed
-	static bool STATScheduled;
+	std::ofstream _outfile;
 };
 #endif // !ENV_H

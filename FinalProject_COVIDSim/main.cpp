@@ -32,8 +32,8 @@ int main() {
 	Agent::AgentEventAction* StateEvents[] = { new SusceptibleStateEvent, new InfectedStateEvent, new NonSusceptibleStateEvent };
 	instance->RegisterStatesToEvents(StateEvents);
 
-	DerivEnv e(10000, 500, 100, 400, 10, 1);
-
+	DerivEnv e("DerivENV",100, 50, 100, 400, 10, 1);
+	
 	RunSimulation(30.0f);
 	return 0;
 }

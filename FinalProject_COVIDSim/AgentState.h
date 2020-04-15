@@ -2,9 +2,11 @@
 #define AGENTSTATE_H
 #include <string>
 #include <tuple> // for tuple 
+#include <fstream>
 #include <iostream>
 #include "Distribution.h"
 #include "SimulationExecutive.h"
+
 
 // Agents highlevel States
 enum SIR_States { Susceptible, Infected, NonSusceptible, Initialization };
@@ -15,9 +17,10 @@ public:
 	static unsigned int _numInfected;
 	static unsigned int _numSusceptible;
 	static unsigned int _numOther;
-	static void printSTAT() {
+	static void printSTAT(std::ofstream& outfile) {
 		using namespace std;
-		cout << "\tTally: { S = " << _numSusceptible << " , I = " << _numInfected << " , R = " << _numOther << " | Time " << GetSimulationTime() << endl << endl;
+		outfile << "\tTally: { S = " << _numSusceptible << " , I = " << _numInfected << " , R = " << _numOther << " | Time " << GetSimulationTime() << endl << endl;
+		
 		/*printf("Tally: { S = %i , I = %i , R = %i } | Time %f\n", _numSusceptible, _numInfected, _numOther, GetTime());*/
 	}
 };
@@ -98,15 +101,18 @@ public:
 		virtual AgentEventAction* New(Agent* a) = 0;
 
 		// Determines the next state to transition too (bool will state whether it transition was scheduled)
-		virtual	bool StateTransitionProcess() = 0;
+		virtual	bool StateTransitionProcess(Parameter* list) = 0;
 
 		// Setting Agent variable
 		void SetAgent(Agent* a) { _a = a; }
 
-		// Setting List
-		void SetParameterList(Parameter* list) {
-			_list = list;
-		}
+		//// Setting List
+		//void SetParameterList(Parameter* list) {
+		//	_list = list;
+		//}
+
+		// Setting Diesease Influence
+		//static void SetDiseaseInfluence(DiseaseInfluence* DI) { _dI = DI; }
 
 		// Gets low level that is defined by the developer
 		std::string GetLowLevelState() { return _lowLevelState; }
@@ -125,7 +131,7 @@ public:
 		Agent* _a;
 		SIR_States _highLevelState{ Initialization };
 		std::string _lowLevelState;
-		Parameter* _list;
+		//static DiseaseInfluence* _dI;
 
 		// Next States
 		std::pair<std::string, Distribution*>* _nextStates;
@@ -138,7 +144,7 @@ public:
 	Agent(Location& loc, AgentEventAction* aea, unsigned int age);
 
 	// Runs State Transition Function pointer to determine next state transition to occur
-	void StateTransition();
+	void StateTransition(Parameter* list);
 
 	// Gets low level that is defined by the developer
 	std::string GetLowLevelState() { return _aea->GetLowLevelState(); }
@@ -152,11 +158,8 @@ public:
 	// Setting Low Level State
 	void SetLowLevelState(std::string state) { _aea->SetLowLevelState(state); }
 
-	// Setting Diesease Influence
-	static void SetDiseaseInfluence(DiseaseInfluence* DI) { _dI = DI; }
-
-	// Parameters (e.g., Distance)
-	void SetParameters(Parameter* list);
+	//// Parameters (e.g., Distance)
+	//void SetParameters(Parameter* list);
 
 	// Get location
 	Location& GetLocation() { return _location; }
@@ -177,9 +180,10 @@ private:
 	Location _location;
 	unsigned int _age;
 	unsigned int _id;
-	static DiseaseInfluence* _dI;
-	AgentEventAction* _aea;
 	static unsigned int _nextId;
+	AgentEventAction* _aea;
+	
+	// Calculation parameter
 	bool _scheduled;
 };
 
@@ -205,7 +209,7 @@ public:
 
 	virtual void Execute2();
 
-	bool StateTransitionProcess();
+	bool StateTransitionProcess(Parameter* list);
 private:
 	static float _expDistributionRate;
 };
@@ -232,7 +236,7 @@ public:
 
 	virtual void Execute2();
 
-	bool StateTransitionProcess();
+	bool StateTransitionProcess(Parameter* list);
 };
 
 // NonSusceptibleStateEvents
@@ -257,7 +261,7 @@ public:
 
 	virtual void Execute2();
 
-	bool StateTransitionProcess();
+	bool StateTransitionProcess(Parameter* list);
 };
 
 // State Mapping

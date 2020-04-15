@@ -6,8 +6,7 @@ unsigned int STAT::_numOther = 0;
 
 // Initializing Static Variables
 unsigned int Agent::_nextId = 0;
-DiseaseInfluence* Agent::_dI = nullptr;
-
+//DiseaseInfluence* Agent::AgentEventAction _dI = nullptr;
 StateMap* StateMap::_instance = nullptr;
 
 Agent::Agent(Location& loc, AgentEventAction* aea, unsigned int age)
@@ -29,19 +28,19 @@ Agent::Agent(Location& loc, AgentEventAction* aea, unsigned int age)
 }
 
 // Agent determines whether to transition based on interactions or time
-void Agent::StateTransition()
+void Agent::StateTransition(Parameter* list)
 {
 	// If transition has been scheduled
 	if (!_scheduled) {
 		// calling function to determine whether to change states and what state
-		_scheduled = _aea->StateTransitionProcess();
+		_scheduled = _aea->StateTransitionProcess(list);
 	}
 }
 
-void Agent::SetParameters(Parameter* list)
-{
-	_aea->SetParameterList(list);
-}
+//void Agent::SetParameters(Parameter* list)
+//{
+//	_aea->SetParameterList(list);
+//}
 
 void Agent::SetAgentEventAction(AgentEventAction* aea)
 {
@@ -114,10 +113,10 @@ void SusceptibleStateEvent::Execute2()
 	//// Setting State Transition function
 	//_a->_stateTranitionFunction = SusceptibleStateEvent::StateTransition;
 }
-bool SusceptibleStateEvent::StateTransitionProcess()
+bool SusceptibleStateEvent::StateTransitionProcess(Parameter* list)
 {
 	// a->_probabilities[0] == I
-	Distance* dists = (Distance *)(_list);
+	Distance* dists = (Distance *)(list);
 	float H = _nextProbabilities[0] != 1.0f ? 1- _nextProbabilities[0] : 1.0f;
 	float I_prob = 0.0f;
 	unsigned int RNG;
@@ -156,9 +155,9 @@ bool SusceptibleStateEvent::StateTransitionProcess()
 void InfectedStateEvent::Execute2()
 {
 	// Setting Schedule with transition function allowing Execute2() to schedule the next event
-	_a->SetScheduled(StateTransitionProcess());
+	_a->SetScheduled(StateTransitionProcess(nullptr));
 }
-bool InfectedStateEvent::StateTransitionProcess()
+bool InfectedStateEvent::StateTransitionProcess(Parameter* list)
 {
 	// _nextStates {string state name, float probability, distribution TimeDelay} 
 
@@ -181,9 +180,9 @@ bool InfectedStateEvent::StateTransitionProcess()
 //Distribution* NonSusceptibleStateEvent::_timeDelay = nullptr;
 void NonSusceptibleStateEvent::Execute2() { 
 	// Setting Schedule with transition function allowing Execute2() to schedule
-	_a->SetScheduled(StateTransitionProcess());
+	_a->SetScheduled(StateTransitionProcess(nullptr));
 }
-bool NonSusceptibleStateEvent::StateTransitionProcess() {
+bool NonSusceptibleStateEvent::StateTransitionProcess(Parameter* list) {
 	// _nextStates {string state name, float probability, distribution TimeDelay} 
 
 	// Determining whether this is a terminating state

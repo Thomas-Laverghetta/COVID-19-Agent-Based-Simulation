@@ -56,25 +56,23 @@ double Triangular::GetRV()
 Normal::Normal(double mean, double stdev)
 {
 	_mean = mean;
-	_variance = stdev*stdev;
-	_isSavedRV = false;
+	_stdev = stdev;
+	//_isSavedRV = false;
 }
 
 #define TWO_PI 6.2831853071795864769252866
 
 double Normal::GetRV()
 {
-	if (_isSavedRV) {
-		_isSavedRV = false;
-		return _savedRV;
-	}
-	else {
-		_isSavedRV = true;
-		double u1 = sqrt(-2.0 * log(Uniform_0_1()));
-		double u2 = TWO_PI*Uniform_0_1();
-		_savedRV = u1*sin(u2);
-		return(u1*cos(u2));
-	}
+	//if (_isSavedRV) {
+	//	_isSavedRV = false;
+	//	return _savedRV;
+	//}
+	//else {
+		//_isSavedRV = true;
+	_savedRV = _mean - _stdev * Uniform_0_1();
+	return(_savedRV);
+	//}
 }
 
 Poisson::Poisson(double mean)
