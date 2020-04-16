@@ -51,6 +51,8 @@ public:
 
 bool DerivEnv::EnvironmentProcess()
 {
+	// Moving Agnets
+	MoveAgents();
 	CheckAgentDistances();
 	if (STAT::_numInfected > 0)
 		return true;
@@ -172,8 +174,7 @@ void DerivEnv::CheckAgentDistances()
 									curr_I->_aRef->GetLowLevelState());
 								curr_I = curr_I->_next;
 							}
-							/*curr_H->_aRef->SetParameters();*/
-							curr_H->_aRef->StateTransition(&distance);
+							curr_H->_aRef->AgentInteraction(&distance);
 							curr_I = InfectedAgents.GetHead();
 							curr_H = curr_H->_next;
 							distance.resetIndex(); // resets index on float[] for next Healthy agent

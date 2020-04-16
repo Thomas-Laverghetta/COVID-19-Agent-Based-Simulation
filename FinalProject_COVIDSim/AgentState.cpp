@@ -9,42 +9,32 @@ unsigned int Agent::_nextId = 0;
 //DiseaseInfluence* Agent::AgentEventAction _dI = nullptr;
 StateMap* StateMap::_instance = nullptr;
 
-Agent::Agent(Location& loc, AgentEventAction* aea, unsigned int age)
+Agent::Agent(Location& loc, AgentStateEventAction* aea, unsigned int age)
 {
 	// Initializing variables
 	_id = _nextId++;
 	_location = loc;
 	_age = age;
-	_aea = aea;
+	_agentState = aea;
 	
 	// For Statistics
-	_aea->InitialSetHighLevelState();
+	_agentState->InitialSetHighLevelState();
 
 	// Setting the event to this agent
-	_aea->SetAgent(this);
+	_agentState->SetAgent(this);
 
 	// setting the initial state of the agent: High and Low states
 	ScheduleEventAt(0, aea); 
 }
 
 // Agent determines whether to transition based on interactions or time
-void Agent::StateTransition(Parameter* list)
+void Agent::AgentInteraction(Parameter* list)
 {
 	// If transition has been scheduled
-	if (!_scheduled) {
+	if (!_transitionScheduled) {
 		// calling function to determine whether to change states and what state
-		_scheduled = _aea->StateTransitionProcess(list);
+		_transitionScheduled = _agentState->StateInteractionProcess(list);
 	}
-}
-
-//void Agent::SetParameters(Parameter* list)
-//{
-//	_aea->SetParameterList(list);
-//}
-
-void Agent::SetAgentEventAction(AgentEventAction* aea)
-{
-	_aea = aea;
 }
 
 //----------------------------MASTER_EXECUTE-------------------------
@@ -57,25 +47,55 @@ void Agent::SetAgentEventAction(AgentEventAction* aea)
 		- This will allow for anything that needs to be done in the
 		- event (that hasnt been already been done in Execute()).
 */
-void Agent::AgentEventAction::Execute()
+void Agent::AgentStateEventAction::Execute()
 {
 	// Transitioning states
-	_a->SetHighLevelState(_highLevelState);
-	_a->SetLowLevelState(_lowLevelState);
-	_a->SetScheduled(false); // RESETTING SCH IN AGENT
-	_a->SetAgentEventAction(this);
+	_a->_transitionScheduled = false; // RESETTING SCH IN AGENT
+
+	// Setting Agent State
+	if (this != _a->_agentState) {
+		delete _a->_agentState;
+		_a->_agentState = this; // gives agent's attributes (low and high level states)
+	}
 
 	// Register to get next states
 	unsigned int i = 0;
-	_nextStates = StateMap::GetInstance()->GetNextStates(_lowLevelState, _numNextStates, i);
-	_nextProbabilities = StateMap::GetInstance()->GetProbabilities(i);
-
+	_nextStates = StateMap::GetInstance()->GetNextStates(_lowLevelState, _numNextStates);
 
 	// Specific State Event Execution
-	Execute2();
+	StateSpecificProcess();
 }
 
-void Agent::AgentEventAction::InitialSetHighLevelState() {
+bool Agent::AgentStateEventAction::StateInteractionProcess(Parameter* list)
+{
+	// _nextStates {string state name, float probability, distribution TimeDelay} 
+	// Determining whether this is a terminating state
+	if (std::get<1>(_nextStates[0]) > 0) {
+		unsigned int RNG = rand() % 101;
+		unsigned int i = -1;
+		float temp = 0;
+		bool loop = true;
+		do {
+			i++;
+
+			if (i == _numNextStates)
+				loop = false;
+
+			temp = std::get<1>(_nextStates[i])->GetProb() + temp;
+		} while (loop && temp * 100 < RNG);
+		if (loop) {
+			ScheduleEventIn(std::get<2>(_nextStates[i])->GetRV(), StateMap::GetInstance()->GetAgentEventAction(std::get<0>(_nextStates[i]))->New(_a));
+			return true;
+		}
+		else {
+			// stay on current state
+			return false;
+		}
+	}
+	return true;
+}
+
+void Agent::AgentStateEventAction::InitialSetHighLevelState() {
 	// Prelude Stat
 	if (_highLevelState == Susceptible)
 		STAT::_numSusceptible++;
@@ -85,7 +105,7 @@ void Agent::AgentEventAction::InitialSetHighLevelState() {
 		STAT::_numOther++;
 }
 
-void Agent::AgentEventAction::SetHighLevelState(SIR_States subState)
+void Agent::AgentStateEventAction::SetHighLevelState(SINs_States subState)
 {
 	// Prelude Stat
 	if (_highLevelState == Susceptible)
@@ -107,96 +127,44 @@ void Agent::AgentEventAction::SetHighLevelState(SIR_States subState)
 }
 
 //---------------------HEALTHY STATES-------------------------
-float SusceptibleStateEvent::_expDistributionRate = 0.5;
-void SusceptibleStateEvent::Execute2()
-{
-	//// Setting State Transition function
-	//_a->_stateTranitionFunction = SusceptibleStateEvent::StateTransition;
+void SusceptibleStateEvent::StateSpecificProcess()
+{ 
 }
-bool SusceptibleStateEvent::StateTransitionProcess(Parameter* list)
+bool SusceptibleStateEvent::StateInteractionProcess(Parameter* list)
 {
-	// a->_probabilities[0] == I
-	Distance* dists = (Distance *)(list);
-	float H = _nextProbabilities[0] != 1.0f ? 1- _nextProbabilities[0] : 1.0f;
-	float I_prob = 0.0f;
-	unsigned int RNG;
-	float tempProb_I;
-	for (int i = 0; i < dists->size(); i++) {
-		// Calculating probability of Infected given distance
-		I_prob = exp(-_expDistributionRate * (*dists)[i]) - exp(-FLT_MAX) - 0.05;
+	if (std::get<1>(_nextStates[0])) {
+		// a->_probabilities[0] == I
+		Distance* dists = (Distance*)(list);
+		unsigned int RNG;
+		float prob;
 
-		// Calculating non normalized probability
-		tempProb_I = _nextProbabilities[0] * I_prob;
-		H = H * (1 - I_prob);
+		for (int i = 0; i < dists->size(); i++) {
+			// Calculating probability of Infected given distance
+			prob = std::get<1>(_nextStates[0])->GetProb((*dists)[i]);
 
-		// Normalizing
-		tempProb_I = tempProb_I / (tempProb_I + H);
-		H = H / (tempProb_I + H);
-
-		if (tempProb_I > _nextProbabilities[0])
-			_nextProbabilities[0] = tempProb_I;
-
-		RNG = rand() % 101;
-		if (RNG > H*100) {
-			ScheduleEventIn(_nextStates[0].second->GetRV(), StateMap::GetInstance()->GetAgentEventAction(_nextStates[0].first)->New(_a)); // Infected Event
-			return true; // Switched states 
+			RNG = rand() % 101;
+			if (RNG > prob * 100) {
+				ScheduleEventIn(std::get<2>(_nextStates[0])->GetRV(), StateMap::GetInstance()->GetAgentEventAction(std::get<0>(_nextStates[0]))->New(_a)); // Infected Event
+				return true; // Switched states 
+			}
 		}
+		return false;
 	}
-	return false;
+	return true;
 }
-//void SusceptibleStateEvent::SetNextEnvironment(AgentEventAction** nextStates, float* nextStateProbabilities)
-//{
-//	_nextStates = nextStates;
-//	_nextStateProbabilities = nextStateProbabilities;
-//}
 
 //---------------------Infected STATES-------------------------
 //Distribution* InfectedStateEvent::_timeDelay = new Triangular(5, 15, 25);
-void InfectedStateEvent::Execute2()
+void InfectedStateEvent::StateSpecificProcess()
 {
 	// Setting Schedule with transition function allowing Execute2() to schedule the next event
-	_a->SetScheduled(StateTransitionProcess(nullptr));
-}
-bool InfectedStateEvent::StateTransitionProcess(Parameter* list)
-{
-	// _nextStates {string state name, float probability, distribution TimeDelay} 
-
-	// Determining whether this is a terminating state
-	if (_nextProbabilities[0] > 0) {
-		unsigned int RNG = rand() % 101;
-		unsigned int i = -1;
-		float temp = 0;
-		do {
-			i++;
-			temp = _nextProbabilities[i] + temp;
-		} while (temp*100 < RNG);
-		ScheduleEventIn(_nextStates[i].second->GetRV(), StateMap::GetInstance()->GetAgentEventAction(_nextStates[i].first)->New(_a));
-		return true;
-	}
-	return true;
+	_a->SetScheduled(StateInteractionProcess(nullptr));
 }
 
 //---------------------OTHER STATES-------------------------
 //Distribution* NonSusceptibleStateEvent::_timeDelay = nullptr;
-void NonSusceptibleStateEvent::Execute2() { 
+void NonSusceptibleStateEvent::StateSpecificProcess() {
 	// Setting Schedule with transition function allowing Execute2() to schedule
-	_a->SetScheduled(StateTransitionProcess(nullptr));
-}
-bool NonSusceptibleStateEvent::StateTransitionProcess(Parameter* list) {
-	// _nextStates {string state name, float probability, distribution TimeDelay} 
-
-	// Determining whether this is a terminating state
-	if (_nextProbabilities[0] > 0) {
-		unsigned int RNG = rand() % 101;
-		unsigned int i = -1;
-		float temp = 0;
-		do {
-			i++;
-			temp = _nextProbabilities[i] + temp;
-		} while (temp < RNG);
-		ScheduleEventIn(_nextStates[i].second->GetRV(), StateMap::GetInstance()->GetAgentEventAction(_nextStates[i].first)->New(_a));
-		return true;
-	}
-	return true;
+	_a->SetScheduled(StateInteractionProcess(nullptr));
 }
 

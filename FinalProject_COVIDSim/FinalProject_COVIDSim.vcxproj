@@ -142,7 +142,6 @@
     <ClCompile Include="DerivEnv.cpp" />
     <ClCompile Include="Distribution.cpp" />
     <ClCompile Include="Environment.cpp" />
-    <ClCompile Include="EventSet.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SimulationExecutive.cpp" />
   </ItemGroup>
@@ -151,10 +150,6 @@
     <ClInclude Include="DerivEnv.h" />
     <ClInclude Include="Distribution.h" />
     <ClInclude Include="Environment.h" />
-    <ClInclude Include="EventAction.h" />
-    <ClInclude Include="EventSet.h" />
-    <ClInclude Include="FIFO.h" />
-    <ClInclude Include="Set.h" />
     <ClInclude Include="SimulationExecutive.h" />
     <ClInclude Include="Stopwatch.h" />
   </ItemGroup>

@@ -1,11 +1,49 @@
 #ifndef DISTRIBUTION_H
 #define DISTRIBUTION_H
+#include <cmath>
+#include <float.h>
+
+class Probability {
+public:
+	virtual float GetProb() = 0;
+	virtual float GetProb(float x) = 0;
+};
+
+class ConstantProbability : public Probability {
+public:
+	ConstantProbability(double probability) : _probability(probability) {}
+
+	float GetProb() {
+		return _probability;
+	}
+	float GetProb(float x) {
+		return _probability;
+	}
+
+private:
+	float _probability;
+};
+
+class InfectionExponential : public Probability {
+public:
+	InfectionExponential(double distanceRate) : _distanceRate(distanceRate) {}
+	float GetProb() {
+		return _distanceRate / 100;
+	}
+	float GetProb(float x) {
+		return exp(-_distanceRate * x) - exp(-FLT_MAX) - 0.05;
+	}
+private:
+	float _distanceRate;
+};
+
 
 class Distribution
 {
 public:
 	Distribution();
 	virtual double GetRV() = 0;
+	virtual double GetProb(double x) { return 0; }
 protected:
 	double Uniform_0_1();
 };
@@ -43,8 +81,7 @@ public:
 	Normal(double mean, double stdev);
 	double GetRV();
 private:
-	//bool _isSavedRV;
-	double _savedRV;
+	double _sqrtValue;
 	double _mean;
 	double _stdev;
 };

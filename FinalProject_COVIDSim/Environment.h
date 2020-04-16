@@ -9,6 +9,7 @@ public:
 		unsigned int numSusceptible, unsigned int numInfected)
 		: _envName(EnvName), _moveFrequency(moveFrequency), _cellResolution(cellResolution)
 	{
+		_id = _nextId++;
 		_outfile.open(EnvName + "OUTPUT.txt");
 		 
 		// Setting domain
@@ -28,16 +29,10 @@ public:
 		// Creating all Agents Simulation (WILL HAVE TO CHANGE LATER)
 		_agentList.CreateAgents(numSusceptible, numInfected, new SusceptibleStateEvent, new InfectedStateEvent, this);
 
-		//if (!STATScheduled) {
-		//	/* initialize random seed: */
-		//	srand(time(NULL));
-		//	ScheduleEventAt(0, new STATEvent);
-		//	STATScheduled = true;
-		//}
-
 		// if move frequency is negative, then no movement (e.g., agent is at home and not interacting)
 		if (_moveFrequency > 0)
-			ScheduleEventAt(_moveFrequency, new MoveEvent(this));
+			ScheduleEventAt(_moveFrequency, new UpdateEnvironmentEvent(this));
+
 	}
 
 	unsigned int GetNumAgentsInEnvironment();
@@ -50,7 +45,7 @@ protected:
 	virtual bool EnvironmentProcess() = 0;
 	void MoveAgents();
 	Environment * NextEnvironment();
-	
+	void PrintContentsOfEnvironment(Agent * a);
 	
 	//--------------------------------DATA_Struct----------------------------
 	// List of agents for current environment
@@ -88,6 +83,17 @@ protected:
 		// Return Head of list
 		Node* GetAgentHead() {
 			return _head->_next;
+		}
+
+		void PrintAgents(Environment* env) {
+			Node* curr = _head->_next;
+			if (curr) {
+				do {
+					env->PrintContentsOfEnvironment(curr->_a);
+					curr = curr->_next;
+				} while (curr != _head);
+				env->PrintContentsOfEnvironment(curr->_a);
+			}
 		}
 
 		// destructor
@@ -140,45 +146,6 @@ protected:
 		unsigned int _numColns;
 	};
 
-	//--------------------------------Events---------------------------------
-	class MoveEvent : public EventAction {
-	public:
-		MoveEvent(Environment* env) : _env(env)
-		{}
-		
-		void Execute() {
-			// Moving Agnets
-			_env->MoveAgents();
-
-			// Running any specific Environment process
-			bool moveAgain = _env->EnvironmentProcess();
-
-			// Update any influences
-			//_env->_envDI->UpdateInfluences(); 
-
-			// Scheduling next move
-			if(moveAgain)
-				ScheduleEventIn(_env->_moveFrequency, this);
-
-			// Diplay Statistics
-			STAT::printSTAT(_env->_outfile);
-		}
-	private:
-		Environment* _env;
-	};
-	class DepartEvent : public EventAction {
-	public:
-		DepartEvent(Environment* env) 
-			: _env(env) {}
-
-		// Gets agent from list, then sends agent to next environment
-		void Execute() {
-			_env->NextEnvironment()->Arrive(_env->_agentList.RemoveAgent());
-		}
-	private:
-		Environment* _env;
-	};
-
 	// Variables
 	std::string _envName;
 	AgentContainer _agentList;
@@ -192,7 +159,44 @@ protected:
 	Environment** _nextEnvironments;
 	float* _nextEnvironmentProbabilities;
 
-private:
+	unsigned int _id;
+	static unsigned int _nextId;
 	std::ofstream _outfile;
+private:
+	//--------------------------------Events---------------------------------
+	class UpdateEnvironmentEvent : public EventAction {
+	public:
+		UpdateEnvironmentEvent(Environment* env) : _env(env)
+		{}
+
+		void Execute() {
+			// Running any specific Environment process
+			bool moveAgain = _env->EnvironmentProcess();
+
+			// Update any influences
+			//_env->_envDI->UpdateInfluences(); 
+
+			// Scheduling next move
+			if (moveAgain)
+				ScheduleEventIn(_env->_moveFrequency, this);
+
+			// Diplay Statistics
+			STAT::printSTAT(_env->_outfile);
+		}
+	private:
+		Environment* _env;
+	};
+	class DepartEvent : public EventAction {
+	public:
+		DepartEvent(Environment* env)
+			: _env(env) {}
+
+		// Gets agent from list, then sends agent to next environment
+		void Execute() {
+			_env->NextEnvironment()->Arrive(_env->_agentList.RemoveAgent());
+		}
+	private:
+		Environment* _env;
+	};
 };
 #endif // !ENV_H

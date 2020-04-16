@@ -57,22 +57,16 @@ Normal::Normal(double mean, double stdev)
 {
 	_mean = mean;
 	_stdev = stdev;
-	//_isSavedRV = false;
+	_sqrtValue = 2 * sqrt(2.0 / 3.1415926535);
 }
 
 #define TWO_PI 6.2831853071795864769252866
 
 double Normal::GetRV()
 {
-	//if (_isSavedRV) {
-	//	_isSavedRV = false;
-	//	return _savedRV;
-	//}
-	//else {
-		//_isSavedRV = true;
-	_savedRV = _mean - _stdev * Uniform_0_1();
-	return(_savedRV);
-	//}
+	// http://www.hrpub.org/download/20140305/MS7-13401470.pdf
+	double RNG = Uniform_0_1();
+	return (_mean - log(RNG/(1-RNG))*_stdev/_sqrtValue);
 }
 
 Poisson::Poisson(double mean)

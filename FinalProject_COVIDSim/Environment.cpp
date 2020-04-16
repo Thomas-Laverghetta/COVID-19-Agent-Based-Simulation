@@ -1,7 +1,7 @@
 #include "Environment.h"
 #include <stdlib.h>
 #include <iomanip>
-
+unsigned int Environment::_nextId = 0;
 //---------------ENV--------------------------
 //bool Environment::STATScheduled = false;
 
@@ -27,9 +27,7 @@ void Environment::MoveAgents()
 			curr->_a->SetLocation(coordinate);
 			_cellContainer.AddAgent(curr->_a);
 
-			_outfile << "| Agent" << setw(5) << curr->_a->GetId() << " | Location (x,y) = (" << setw(4) <<
-				curr->_a->GetLocation()._x << "," << setw(4) << curr->_a->GetLocation()._y << ") in Environment - " << setw(10) << _envName << " | High-Level-State " << 
-				curr->_a->GetHighLevelState() << endl;
+			PrintContentsOfEnvironment(curr->_a);
 
 			curr = curr->_next;
 		} while (curr != _agentList.GetAgentHead());
@@ -51,6 +49,15 @@ Environment * Environment::NextEnvironment()
 	}
 	else
 		return this;
+}
+
+void Environment::PrintContentsOfEnvironment(Agent* a)
+{
+	_outfile << a->GetId() << "," << a->GetLocation()._x << "," << a->GetLocation()._y << "," << _id << "," << a->GetHighLevelState() << std::endl;
+
+	/*_outfile << "| Agent" << setw(5) << a->GetId() << " | Location (x,y) = (" << setw(4) <<
+		a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(10) << _envName << " | High-Level-State " <<
+		a->GetHighLevelState() << endl;*/
 }
 
 unsigned int Environment::GetNumAgentsInEnvironment()
@@ -123,17 +130,12 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 		env->_cellContainer.AddAgent(a);
 	AddAgent(a, env);
 
-	env->_outfile << "| Agent" << setw(5) << a->GetId() << " | Location(x,y) = (" << setw(4) <<
-			a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(10) << env->_envName << " | High-Level-State " << a->GetHighLevelState() << endl;
-
 	for (int i = 1; i < numSusceptible; i++){
 		coordinate._x = rand() % env->_domain._x; coordinate._y = rand() % env->_domain._y; // randoming choosing location with in domain
 		a = new Agent(coordinate, SuscepibleEvent->New(), rand() % 100 + 1);
 		if (env->_cellResolution > 0)
 			env->_cellContainer.AddAgent(a);
 		AddAgent(a, env);
-		env->_outfile << "| Agent" << setw(5) << a->GetId() << " | Location(x,y) = (" << setw(4) <<
-			a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(10) << env->_envName << " | High-Level-State " << a->GetHighLevelState() << endl;
 	}
 
 	// Infected
@@ -143,8 +145,6 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 		env->_cellContainer.AddAgent(a);
 	AddAgent(a, env);
 
-	env->_outfile << "| Agent" << setw(5) << a->GetId() << " | Location(x,y) = (" << setw(4) <<
-		a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(10) << env->_envName << " | High-Level-State " << a->GetHighLevelState() << endl;
 
 	for (int i = 1; i < numInfected; i++) {
 		coordinate._x = rand() % env->_domain._x; coordinate._y = rand() % env->_domain._y; // randoming choosing location with in domain
@@ -152,10 +152,8 @@ void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsi
 		if (env->_cellResolution > 0)
 			env->_cellContainer.AddAgent(a);
 		AddAgent(a, env);
-
-		env->_outfile << "| Agent" << setw(5) << a->GetId() << " | Location(x,y) = (" << setw(4) <<
-			a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(10) << env->_envName << " | High-Level-State " << a->GetHighLevelState() << endl;
 	}
+	PrintAgents(env);
 	STAT::printSTAT(env->_outfile);
 }
 
