@@ -4,7 +4,7 @@
 #include <tuple> // for tuple 
 #include <fstream>
 #include <iostream>
-#include "Distribution.h"
+#include "Variant.h"
 #include "SimulationExecutive.h"
 
 
@@ -14,10 +14,10 @@ enum SINs_States { Susceptible, Infected, NonSusceptible, Initialization };
 // PreExisting
 enum PreExisting { Cardiovascular, Diabetes, Chronic_Repriratory, Hypertension, Cancer, NoPreExisting };
 
-// Age Distribution
-class AgeDistribution : public Distribution {
+// Age Variant
+class AgeVariant : public Variant {
 public:
-	AgeDistribution() {}
+	AgeVariant() {}
 	double GetRV()
 	{
 		//https://www.census.gov/data/tables/2018/demo/age-and-sex/2018-age-sex-composition.html
@@ -33,10 +33,13 @@ public:
 		else
 			return rand() % 25 + 75;
 	}
+	Variant* New(ProbabilityParameters& param) {
+		return new AgeVariant;
+	}
 };
 
-// Distribution for pre-existing
-class PreExistingDistribution {
+// Variant for pre-existing
+class PreExistingVariant {
 public:
 	static double Uniform_0_1()
 	{
@@ -109,18 +112,7 @@ public:
 	}
 };
 
-class InfectionExponential : public Probability {
-public:
-	InfectionExponential(double distanceRate) : _distanceRate(distanceRate) {}
-	float GetProb() {
-		return _distanceRate / 100;
-	}
-	float GetProb(float x) {
-		return exp(-_distanceRate * x) - exp(-FLT_MAX) - 0.05;
-	}
-private:
-	float _distanceRate;
-};
+
 
 class Death_Age_HealthCondition_Prob : public Probability {
 public:
@@ -174,6 +166,9 @@ public:
 		else
 			return 0.148;
 	}
+	virtual Probability* New(ProbabilityParameters& p) {
+		return new Death_Age_HealthCondition_Prob;
+	}
 };
 
 class Recovered_Age_HealthCondition_Prob : public Death_Age_HealthCondition_Prob {
@@ -182,6 +177,9 @@ class Recovered_Age_HealthCondition_Prob : public Death_Age_HealthCondition_Prob
 	}
 	virtual float AgeGetProb(unsigned int age) {
 		return 1 - _da.AgeGetProb(age);
+	}
+	Probability* New(ProbabilityParameters& p) {
+		return new Recovered_Age_HealthCondition_Prob;
 	}
 private:
 	Death_Age_HealthCondition_Prob _da;
@@ -218,13 +216,12 @@ public:
 	}
 
 	void CumStatistics(std::ofstream& outfile) {
-		if (_sample == 1) {
+		if (_sample == 0) {
 			outfile << "Sample,NumSusceptible,NumInfected,NumRecovered,NumDead,CumAgeDead,CumAgeRecovery,Time" << std::endl;
 		}
-		outfile << _sample << "," << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << _deadAge << "," 
-			<< _recoveryAge << "," << _Termtime << std::endl;
-		
 		_sample++;
+		outfile << _sample << "," << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << _deadAge << "," 
+			<< _recoveryAge << "," << _Termtime << std::endl;		
 	}
 
 	void ResetSTAT() {
@@ -283,15 +280,6 @@ public:
 	virtual void UpdateInfluences() = 0;
 };
 
-// Parameter Object to calculate probability of state transition
-class Parameter {
-public:
-	Parameter(unsigned int numPara) : _numParameters(numPara) {}
-	unsigned int GetNumParameters() { return _numParameters; }
-	virtual ~Parameter() {}
-protected:
-	unsigned int _numParameters;
-};
 class Distance : public Parameter {
 public:
 	Distance(unsigned int numDistance) : Parameter{2} {
@@ -372,7 +360,7 @@ public:
 		std::string _lowLevelState;
 
 		// Next States
-		std::tuple < std::string, Probability*, Distribution*>* _nextStates;
+		std::tuple < std::string, Probability*, Variant*>* _nextStates;
 		unsigned int _numNextStates;
 
 		// Statistics
@@ -567,7 +555,7 @@ public:
 // State Mapping
 class StateMap {
 private:
-	std::tuple < std::string, Probability *, Distribution*>** _nextState;
+	std::tuple < std::string, Probability *, Variant*>** _nextState;
 	Agent::AgentStateEventAction** _newAgentEvents;
 	std::string* _currStates;
 	unsigned int _stateIndex;
@@ -586,12 +574,12 @@ public:
 	void Initialize(unsigned int numStates) {
 		_currStates = DBG_NEW std::string[numStates];
 		_newAgentEvents = DBG_NEW Agent::AgentStateEventAction * [numStates];
-		_nextState = DBG_NEW std::tuple < std::string, Probability*, Distribution*> * [numStates];
+		_nextState = DBG_NEW std::tuple < std::string, Probability*, Variant*> * [numStates];
 		_numNextStates = DBG_NEW unsigned int[numStates];
 		_numStates = numStates;
 	}
 
-	void RegisterStateToNextState(std::string currState, std::tuple < std::string, Probability*, Distribution *>* nextStates, unsigned int numNextStates) {
+	void RegisterStateToNextState(std::string currState, std::tuple < std::string, Probability*, Variant *>* nextStates, unsigned int numNextStates) {
 		// Registering the state name
 		_currStates[_stateIndex] = currState;
 
@@ -608,7 +596,7 @@ public:
 		_newAgentEvents = newAgentEvents;
 	}
 
-	std::tuple < std::string, Probability*, Distribution*>* GetNextStates(std::string currState, unsigned int& numPairs) {
+	std::tuple < std::string, Probability*, Variant*>* GetNextStates(std::string currState, unsigned int& numPairs) {
 		for (int i = 0; i < _numStates; i++)
 		{
 			if (_currStates[i] == currState)

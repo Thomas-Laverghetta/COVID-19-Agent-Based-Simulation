@@ -5,26 +5,12 @@
 
 class Environment {
 public:
-	Environment(std::string EnvName, Distribution * agentInEnvDuration, float moveFrequency, unsigned int cellResolution, unsigned int Ymax, unsigned int Xmax, 
+	Environment(std::string EnvName, Variant * agentInEnvDuration, float moveFrequency, unsigned int cellResolution, unsigned int Ymax, unsigned int Xmax, 
 		unsigned int numSusceptible, unsigned int numInfected, SusceptibleStateEvent * initialHealthyState, InfectedStateEvent * initialInfectedState)
 		: _envName(EnvName), _moveFrequency(moveFrequency), _cellResolution(cellResolution)
 	{
 		STAT::GetInstance()->ResetSTAT();
 		_id = _nextId++;
-
-		if (STAT::GetInstance()->_sample > 0) {
-			_SIRoutputCompress.open("OutputData//SINs_outputCompress.txt", std::ios_base::app); _SIRoutputCompress << std::endl;
-			//_SEIRoutput.open("OutputData//" + EnvName + "_SEIRoutput.txt", std::ios_base::app); _SEIRoutput << endl;
-			_SEIRoutputCompressed.open("OutputData//SESRD_MultiEnv_outputCompressed.txt", std::ios_base::app);
-			_statisticsFile.open("OutputData//Infection_Statistics.txt", std::ios_base::app);
-		}
-		else {
-			_SIRoutputCompress.open("OutputData//SINs_outputCompress.txt");
-			//_SEIRoutput.open("OutputData//" + EnvName + "_SEIRoutput.txt");
-			_SEIRoutputCompressed.open("OutputData//SESRD_MultiEnv_outputCompressed.txt");
-			_statisticsFile.open("OutputData//Infection_Statistics.txt");
-			STAT::GetInstance()->_sample++;
-		}
 
 		// Setting domain
 		_domain._x = Xmax;
@@ -34,18 +20,18 @@ public:
 			// Initializing and Creating cells
 			_cellContainer.CreateCells();
 		}
-		_agentList.SettingDepartDistribution(agentInEnvDuration);
+		_agentList.SettingDepartVariant(agentInEnvDuration);
 
 		// Next environment Parameters to null
 		_nextEnvironments = nullptr;
 		_nextEnvironmentProbabilities = nullptr;
 
-		// Creating all Agents Simulation (WILL HAVE TO CHANGE LATER)
-		_agentList.CreateAgents(numSusceptible, numInfected, initialHealthyState, initialInfectedState, this);
-
 		// if move frequency is negative, then no movement (e.g., agent is at home and not interacting)
 		if (_moveFrequency > 0)
 			ScheduleEventAt(_moveFrequency, DBG_NEW UpdateEnvironmentEvent(this));
+
+		// Creating all Agents Simulation (WILL HAVE TO CHANGE LATER)
+		_agentList.CreateAgents(numSusceptible, numInfected, initialHealthyState, initialInfectedState);
 	}
 
 	unsigned int GetNumAgentsInEnvironment();
@@ -55,44 +41,47 @@ public:
 protected:
 	//--------------------------------FUNCT---------------------------------
 	void Arrive(Agent* a);
-	virtual bool EnvironmentProcess() = 0;
+	virtual void EnvironmentProcess() = 0;
 	void MoveAgents();
 	Environment * NextEnvironment();
 	void PrintContentsOfEnvironment(Agent * a);
+	void CheckAgentDistances();
 	
 	//--------------------------------DATA_Struct----------------------------
 	// List of agents for current environment
 	class AgentContainer {
 	public:
-		AgentContainer() {
+		AgentContainer(Environment * env) : _env (env) {
 			_head = nullptr;
 			_tail = nullptr;
 			_numAgents = 0;
 			_agentInEnvDuration = nullptr;
+			_addRemoveStat = false;
 		}
+
+		void SetAddRemoveStat(bool stat) {
+			_addRemoveStat = stat;
+		}
+
 		struct Node {
 			Node(Agent* a) : _a(a), _next(nullptr){	}
 			Agent* _a;
 			Node* _next;
-
-			~Node() {
-				delete _a;
-			}
 		};
 
 		// Setting Depart Time
-		void SettingDepartDistribution(Distribution* agentInEnvDuration) {
+		void SettingDepartVariant(Variant* agentInEnvDuration) {
 			_agentInEnvDuration = agentInEnvDuration;
 		}
 
 		// Places Agent in list and Schedule Departure
-		void AddAgent(Agent* a, Environment* env);
+		void AddAgent(Agent* a);
 
 		// Will get nextNode after previousNode and remove from list
 		Agent * RemoveAgent();
 		
 		// Creates Agents and schedules departure time 
-		void CreateAgents(unsigned int numSusceptible, unsigned int numInfected, SusceptibleStateEvent* SuscepibleEvent, InfectedStateEvent* InfectedEvent, Environment * env);
+		void CreateAgents(unsigned int numSusceptible, unsigned int numInfected, SusceptibleStateEvent* SuscepibleEvent, InfectedStateEvent* InfectedEvent);
 
 		// Return the number of agents in environment
 		unsigned int GetNumAgent() { return _numAgents; }
@@ -102,12 +91,12 @@ protected:
 			return _head;
 		}
 
-		void PrintAgents(Environment* env) {
+		void PrintAgents() {
 			Node* curr = _head;
 			// States
 			if (curr) {
 				do {
-					env->PrintContentsOfEnvironment(curr->_a);
+					_env->PrintContentsOfEnvironment(curr->_a);
 					curr = curr->_next;
 
 				} while (curr != _head);
@@ -120,7 +109,9 @@ protected:
 		Node* _head; 
 		Node* _tail;
 		unsigned int _numAgents;
-		Distribution* _agentInEnvDuration;
+		Variant* _agentInEnvDuration;
+		bool _addRemoveStat;
+		Environment* _env;
 	};
 	
 	// Cell data Structure
@@ -169,7 +160,7 @@ protected:
 
 	// Variables
 	std::string _envName;
-	AgentContainer _agentList;
+	AgentContainer _agentList{ this };
 	Location _domain;
 	unsigned int _cellResolution;
 	Time _moveFrequency;
@@ -181,9 +172,9 @@ protected:
 
 	unsigned int _id;
 	static unsigned int _nextId;
-	std::ofstream _SIRoutputCompress;
-	std::ofstream _SEIRoutputCompressed;
-	std::ofstream _statisticsFile;
+	static std::ofstream _SIRoutputCompress;
+	static std::ofstream _SEIRoutputCompressed;
+	static std::ofstream _statisticsFile;
 
 	virtual ~Environment() {
 		delete _nextEnvironmentProbabilities;
@@ -195,6 +186,7 @@ private:
 		UpdateEnvironmentEvent(Environment* env) : _env(env)
 		{}
 
+		// Control loops
 		void Execute() {
 			// Running any specific Environment process
 			_env->EnvironmentProcess();

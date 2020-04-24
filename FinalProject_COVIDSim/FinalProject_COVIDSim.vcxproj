@@ -144,20 +144,27 @@
   <ItemGroup>
     <ClCompile Include="AgentState.cpp" />
     <ClCompile Include="DerivEnv.cpp" />
-    <ClCompile Include="Distribution.cpp" />
+    <ClCompile Include="Probability.cpp" />
+    <ClCompile Include="Variant.cpp" />
     <ClCompile Include="Environment.cpp" />
     <ClCompile Include="HomeEnvironment.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SimulationExecutive.cpp" />
+    <ClCompile Include="tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgentState.h" />
     <ClInclude Include="DerivEnv.h" />
-    <ClInclude Include="Distribution.h" />
+    <ClInclude Include="Probability.h" />
+    <ClInclude Include="Variant.h" />
     <ClInclude Include="Environment.h" />
     <ClInclude Include="HomeEnvironment.h" />
     <ClInclude Include="SimulationExecutive.h" />
     <ClInclude Include="Stopwatch.h" />
+    <ClInclude Include="tinyxml2.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="parameters.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

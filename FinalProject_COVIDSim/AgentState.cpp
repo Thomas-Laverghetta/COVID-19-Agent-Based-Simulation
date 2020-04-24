@@ -19,7 +19,7 @@ Agent::Agent(Location& loc, AgentStateEventAction* aea, unsigned int age)
 	_agentState = aea;
 
 	// Application
-	_PreExisting = PreExistingDistribution::GetRVDisease(_age);
+	_PreExisting = PreExistingVariant::GetRVDisease(_age);
 
 	// Setting the event to this agent
 	_agentState->SetAgent(this);
@@ -71,7 +71,7 @@ void Agent::AgentStateEventAction::Execute()
 
 bool Agent::AgentStateEventAction::StateInteractionProcess(Parameter* list)
 {
-	// _nextStates {string state name, float probability, distribution TimeDelay} 
+	// _nextStates {string state name, float probability, Variant TimeDelay} 
 	// Determining whether this is a terminating state
 	if (std::get<1>(_nextStates[0]) > 0) {
 		unsigned int RNG = rand() % 101;
@@ -129,7 +129,7 @@ void InfectedStateEvent::StateSpecificProcess()
 // Application
 bool SymptomStateEvent::StateInteractionProcess(Parameter* list)
 {
-	// _nextStates {string state name, float probability, distribution TimeDelay} 
+	// _nextStates {string state name, float probability, Variant TimeDelay} 
 	// Determining whether this is a terminating state
 	unsigned int RNG = rand() % 101;
 	float prob = ((Death_Age_HealthCondition_Prob*)std::get<1>(_nextStates[1]))->AgeGetProb(_a->GetAge()) + ((Death_Age_HealthCondition_Prob*)std::get<1>(_nextStates[1]))->HealthConditionGetProb(_a->GetPreExisting());
@@ -144,7 +144,7 @@ bool SymptomStateEvent::StateInteractionProcess(Parameter* list)
 }
 
 //---------------------OTHER STATES-------------------------
-//Distribution* NonSusceptibleStateEvent::_timeDelay = nullptr;
+//Variant* NonSusceptibleStateEvent::_timeDelay = nullptr;
 void NonSusceptibleStateEvent::StateSpecificProcess() {
 	// Setting Schedule with transition function allowing Execute2() to schedule
 	_a->SetScheduled(StateInteractionProcess(nullptr));

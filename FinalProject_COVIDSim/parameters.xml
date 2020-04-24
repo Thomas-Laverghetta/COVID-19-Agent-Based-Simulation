@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<objects>
+  <!--The number of states the simulation is using-->
+  <numStates num="5" ></numStates>
+  <!--States-->
+  <!--Susceptible State-->
+  <state name="Susceptible" numTransitions="1" nextState0="Exposed" 
+         numProbParam0="1" probParam00 ="0.25" probability0="Distance"
+         numVariantParam0="1" varParam00="0" variant0="Constant"></state>
+
+  <!--Exposed State-->  
+  <state name="Exposed" numTransitions="1" nextState0="Symptom" 
+         numProbParam0="1" probParam00 ="1.0" probability0="Constant"
+         numVariantParam0="3" varParam00="2" varParam01="5.2" varParam02="14" variant0="Triangular"></state>
+
+  <!--Symptom-->
+  <state name="Symptom" numTransitions="1" 
+         
+         nextState0="Recovered"
+         numProbParam0="0" probability0="Recover"
+         numVariantParam0="2" varParam00="13.2" varParam01="4.36" variant0="Normal"
+         
+         nextState1="Dead"
+         numProbParam1="0" probability1="Death"
+         numVariantParam1="2" varParam10="13.2" varParam11="4.36" variant1="Normal"
+         ></state>
+
+  <state name="Recovered"  numTransitions="0"></state>
+
+  <state name="Dead"  numTransitions="0"></state>
+    
+</objects>
