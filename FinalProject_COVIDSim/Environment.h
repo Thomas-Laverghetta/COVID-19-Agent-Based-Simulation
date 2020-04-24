@@ -6,12 +6,26 @@
 class Environment {
 public:
 	Environment(std::string EnvName, Distribution * agentInEnvDuration, float moveFrequency, unsigned int cellResolution, unsigned int Ymax, unsigned int Xmax, 
-		unsigned int numSusceptible, unsigned int numInfected)
+		unsigned int numSusceptible, unsigned int numInfected, SusceptibleStateEvent * initialHealthyState, InfectedStateEvent * initialInfectedState)
 		: _envName(EnvName), _moveFrequency(moveFrequency), _cellResolution(cellResolution)
 	{
+		STAT::GetInstance()->ResetSTAT();
 		_id = _nextId++;
-		_outfile.open(EnvName + "OUTPUT.txt");
-		 
+
+		if (STAT::GetInstance()->_sample > 0) {
+			_SIRoutputCompress.open("OutputData//SINs_outputCompress.txt", std::ios_base::app); _SIRoutputCompress << std::endl;
+			//_SEIRoutput.open("OutputData//" + EnvName + "_SEIRoutput.txt", std::ios_base::app); _SEIRoutput << endl;
+			_SEIRoutputCompressed.open("OutputData//SESRD_MultiEnv_outputCompressed.txt", std::ios_base::app);
+			_statisticsFile.open("OutputData//Infection_Statistics.txt", std::ios_base::app);
+		}
+		else {
+			_SIRoutputCompress.open("OutputData//SINs_outputCompress.txt");
+			//_SEIRoutput.open("OutputData//" + EnvName + "_SEIRoutput.txt");
+			_SEIRoutputCompressed.open("OutputData//SESRD_MultiEnv_outputCompressed.txt");
+			_statisticsFile.open("OutputData//Infection_Statistics.txt");
+			STAT::GetInstance()->_sample++;
+		}
+
 		// Setting domain
 		_domain._x = Xmax;
 		_domain._y = Ymax;
@@ -27,12 +41,11 @@ public:
 		_nextEnvironmentProbabilities = nullptr;
 
 		// Creating all Agents Simulation (WILL HAVE TO CHANGE LATER)
-		_agentList.CreateAgents(numSusceptible, numInfected, new SusceptibleStateEvent, new InfectedStateEvent, this);
+		_agentList.CreateAgents(numSusceptible, numInfected, initialHealthyState, initialInfectedState, this);
 
 		// if move frequency is negative, then no movement (e.g., agent is at home and not interacting)
 		if (_moveFrequency > 0)
-			ScheduleEventAt(_moveFrequency, new UpdateEnvironmentEvent(this));
-
+			ScheduleEventAt(_moveFrequency, DBG_NEW UpdateEnvironmentEvent(this));
 	}
 
 	unsigned int GetNumAgentsInEnvironment();
@@ -61,6 +74,10 @@ protected:
 			Node(Agent* a) : _a(a), _next(nullptr){	}
 			Agent* _a;
 			Node* _next;
+
+			~Node() {
+				delete _a;
+			}
 		};
 
 		// Setting Depart Time
@@ -82,17 +99,18 @@ protected:
 
 		// Return Head of list
 		Node* GetAgentHead() {
-			return _head->_next;
+			return _head;
 		}
 
 		void PrintAgents(Environment* env) {
-			Node* curr = _head->_next;
+			Node* curr = _head;
+			// States
 			if (curr) {
 				do {
 					env->PrintContentsOfEnvironment(curr->_a);
 					curr = curr->_next;
+
 				} while (curr != _head);
-				env->PrintContentsOfEnvironment(curr->_a);
 			}
 		}
 
@@ -129,6 +147,9 @@ protected:
 
 		// Deleting all Nodes
 		~CellLinkedList();
+		
+		// Resetting Environment Cells
+		void ResetLinkedList();
 
 		// Getting head node from linked list
 		CellNode* GetCellHead(unsigned int row, unsigned int coln) {
@@ -153,7 +174,6 @@ protected:
 	unsigned int _cellResolution;
 	Time _moveFrequency;
 	CellLinkedList _cellContainer{ this };
-	DiseaseInfluence* _envDI;
 
 	// Next Environment
 	Environment** _nextEnvironments;
@@ -161,7 +181,13 @@ protected:
 
 	unsigned int _id;
 	static unsigned int _nextId;
-	std::ofstream _outfile;
+	std::ofstream _SIRoutputCompress;
+	std::ofstream _SEIRoutputCompressed;
+	std::ofstream _statisticsFile;
+
+	virtual ~Environment() {
+		delete _nextEnvironmentProbabilities;
+	}
 private:
 	//--------------------------------Events---------------------------------
 	class UpdateEnvironmentEvent : public EventAction {
@@ -171,17 +197,19 @@ private:
 
 		void Execute() {
 			// Running any specific Environment process
-			bool moveAgain = _env->EnvironmentProcess();
-
-			// Update any influences
-			//_env->_envDI->UpdateInfluences(); 
+			_env->EnvironmentProcess();
 
 			// Scheduling next move
-			if (moveAgain)
+			if (STAT::GetInstance()->_numInfected > 0)
 				ScheduleEventIn(_env->_moveFrequency, this);
+			else if(!_StatEventSch) {
+				ScheduleEventIn(0, DBG_NEW StatEvent(_env));
+				_StatEventSch = true;
+			}
 
 			// Diplay Statistics
-			STAT::printSTAT(_env->_outfile);
+			STAT::GetInstance()->printSIRTallySTAT(_env->_SIRoutputCompress);
+			STAT::GetInstance()->printSEIRTallySTAT(_env->_SEIRoutputCompressed);
 		}
 	private:
 		Environment* _env;
@@ -198,5 +226,20 @@ private:
 	private:
 		Environment* _env;
 	};
+
+	class StatEvent : public EventAction {
+	public:
+		StatEvent(Environment* env) : _env(env) {}
+
+		void Execute() {
+			STAT::GetInstance()->CumStatistics(_env->_statisticsFile);
+			_env->_StatEventSch = false;
+			_env = nullptr;
+		}
+	private:
+		Environment* _env;
+	};
+
+	static bool _StatEventSch;
 };
 #endif // !ENV_H

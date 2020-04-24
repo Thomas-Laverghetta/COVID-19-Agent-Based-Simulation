@@ -4,9 +4,9 @@
 	create all agents in simulation, and
 	schedule next move event
 */
-DerivEnv::DerivEnv(std::string name, unsigned int numSusceptible, unsigned int numInfected, unsigned int Ymax, unsigned int Xmax,
+DerivEnv::DerivEnv(std::string name, SusceptibleStateEvent * initialHealthyState, InfectedStateEvent * initialInfectedState, unsigned int numSusceptible, unsigned int numInfected, unsigned int Ymax, unsigned int Xmax,
 	unsigned int cellResolution, Time moveFrequency, Distribution* agentInEnvDuration)
-	: Environment{ name, agentInEnvDuration, moveFrequency, cellResolution,  Ymax, Xmax, numSusceptible, numInfected}
+	: Environment{ name, agentInEnvDuration, moveFrequency, cellResolution,  Ymax, Xmax, numSusceptible, numInfected, initialHealthyState, initialInfectedState }
 {
 	// initializing Disease Influence Variables 
 	//_envDI = nullptr; ///////////////////////////////////////
@@ -28,7 +28,7 @@ public:
 	NodeTracker* _head;
 
 	void AddAgent(Agent* a) {
-		NodeTracker* newNode = new NodeTracker(a);
+		NodeTracker* newNode = DBG_NEW NodeTracker(a);
 		_nodeCounter++;
 		newNode->_next = _head;
 		_head = newNode;
@@ -54,15 +54,18 @@ bool DerivEnv::EnvironmentProcess()
 	// Moving Agnets
 	MoveAgents();
 	CheckAgentDistances();
-	if (STAT::_numInfected > 0)
+
+	if (STAT::GetInstance()->_numInfected > 0) {
 		return true;
-	else
+	}
+	else {
 		return false;
+	}
 }
 
 void DerivEnv::CheckAgentDistances()
 {
-	if (STAT::_numSusceptible > 0) {
+	if (STAT::GetInstance()->_numSusceptible > 0 && STAT::GetInstance()->_numInfected > 0) {
 		unsigned int coln_max = (1 + ((_domain._x - 1) / _cellResolution));
 		unsigned int row_max = (1 + ((_domain._y - 1) / _cellResolution));
 		for (int r = 0; r < row_max; r++) {
@@ -159,7 +162,7 @@ void DerivEnv::CheckAgentDistances()
 					} while (doLoop);
 					// If there is infected and healthy agents
 					if (HealthyAgents._nodeCounter > 0 && InfectedAgents._nodeCounter > 0) {
-						Distance distance(InfectedAgents._nodeCounter);
+						Distance* distance = DBG_NEW Distance(InfectedAgents._nodeCounter);
 						AgentTracker::NodeTracker* curr_H = HealthyAgents.GetHead();
 						AgentTracker::NodeTracker* curr_I = InfectedAgents.GetHead();
 
@@ -167,19 +170,19 @@ void DerivEnv::CheckAgentDistances()
 						while (curr_H != nullptr) {
 							while (curr_I != nullptr) {
 								// Calculating Distance
-								distance.AddDistance(sqrtf((curr_H->_aRef->GetLocation()._x - curr_I->_aRef->GetLocation()._x) *
+								distance->AddDistance(sqrtf((curr_H->_aRef->GetLocation()._x - curr_I->_aRef->GetLocation()._x) *
 									(curr_H->_aRef->GetLocation()._x - curr_I->_aRef->GetLocation()._x) +
 									(curr_H->_aRef->GetLocation()._y - curr_I->_aRef->GetLocation()._y) *
 									(curr_H->_aRef->GetLocation()._y - curr_I->_aRef->GetLocation()._y)),
 									curr_I->_aRef->GetLowLevelState());
 								curr_I = curr_I->_next;
 							}
-							curr_H->_aRef->AgentInteraction(&distance);
+							curr_H->_aRef->AgentInteraction(distance);
 							curr_I = InfectedAgents.GetHead();
 							curr_H = curr_H->_next;
-							distance.resetIndex(); // resets index on float[] for next Healthy agent
+							distance->resetIndex(); // resets index on float[] for next Healthy agent
 						}
-						// PLOBLEM
+						delete distance;
 					}
 				}
 			}

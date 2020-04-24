@@ -1,0 +1,2 @@
+Sample,NumSusceptible,NumInfected,NumRecovered,NumDead,CumAgeDead,CumAgeRecovery,Time
+1,0,0,96,5,218,3791,43.9093

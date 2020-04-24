@@ -11,6 +11,7 @@
 //#define eventStats
 
 using namespace stopwatch;
+using namespace std;
 
 /*Current Goals
 - Change from standard linked list to calendar queue
@@ -88,7 +89,7 @@ public:
 
 		_schDec = false;
 		_terminate = false;
-		_eventStats = new EventStat(); // Statistics reset between runs
+		_eventStats = DBG_NEW EventStat(); // Statistics reset between runs
 
 		//If not steady state
 		if (!_steady)
@@ -99,7 +100,7 @@ public:
 			_schEventList.SwapLists(_exeEventList);	
 		}
 
-		_scheduleThread = new thread(startScheduleThread);//Start Schedule Thread
+		_scheduleThread = DBG_NEW thread(startScheduleThread);//Start Schedule Thread
 		startExecuteThread(endTime); //Start Execute Thread
 
 		_scheduleThread->join();//Join threads for termination
@@ -120,7 +121,7 @@ public:
 
 		_schDec = false;
 		_terminate = false;
-		_eventStats = new EventStat(); // Statistics reset between runs
+		_eventStats = DBG_NEW EventStat(); // Statistics reset between runs
 
 		//If not steady state
 		if (!_steady)
@@ -131,7 +132,7 @@ public:
 			_schEventList.SwapLists(_exeEventList);
 		}
 
-		_scheduleThread = new thread(startScheduleThread);//Start Schedule Thread
+		_scheduleThread = DBG_NEW thread(startScheduleThread);//Start Schedule Thread
 		startExecuteThread(numEvExe); //Start Execute Thread
 
 		_scheduleThread->join();//Join threads for termination
@@ -185,6 +186,7 @@ public:
 					Time eTime = ev->_time;
 					EventAction* ea = ev->_ea;
 					_exeEventList.AddEvent(eTime, ea);
+					delete ev;
 					//Need to request lock for the next HasEvent()
 					RequestLock();
 
@@ -194,6 +196,10 @@ public:
 			}
 		}
 	};
+
+	static bool IsEventsSimulation() {
+		return _exeEventList.HasEvent();
+	}
 
 	static void startExecuteThread(Time endTime)
 	{
@@ -226,12 +232,12 @@ public:
 #endif
 
 					e->_ea->Execute();
-
+					
 #if timing == 1
 					_timer.EndWatch();
 #endif
 					_eventStats->_exeEvents++; //Increments number of events executed
-					//delete e;
+					delete e;
 				}
 				else{
 					ReleaseLock();// Need to release lock
@@ -385,7 +391,7 @@ private:
 #ifdef eventStats
 			UpdateEventStats(_ID, _numEvents);
 #endif
-			Event *e = new Event(time, ea);
+			Event *e = DBG_NEW Event(time, ea);
 
 			if (_eventHead == NULL) {
 				//event list empty
@@ -650,7 +656,9 @@ void ScheduleEventAt(Time time, EventAction *ea)
 	SimulationExecutive::ScheduleEventAt(time, ea);
 }
 
-
+bool IsEventsSimulation() {
+	return SimulationExecutive::IsEventsSimulation();
+}
 //Used for testing
 void FlipSteady()
 {

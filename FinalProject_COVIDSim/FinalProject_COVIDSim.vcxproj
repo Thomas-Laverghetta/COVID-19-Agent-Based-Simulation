@@ -103,6 +103,10 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <StackReserveSize>
+      </StackReserveSize>
+      <StackCommitSize>
+      </StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -142,6 +146,7 @@
     <ClCompile Include="DerivEnv.cpp" />
     <ClCompile Include="Distribution.cpp" />
     <ClCompile Include="Environment.cpp" />
+    <ClCompile Include="HomeEnvironment.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SimulationExecutive.cpp" />
   </ItemGroup>
@@ -150,6 +155,7 @@
     <ClInclude Include="DerivEnv.h" />
     <ClInclude Include="Distribution.h" />
     <ClInclude Include="Environment.h" />
+    <ClInclude Include="HomeEnvironment.h" />
     <ClInclude Include="SimulationExecutive.h" />
     <ClInclude Include="Stopwatch.h" />
   </ItemGroup>

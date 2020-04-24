@@ -11,18 +11,258 @@
 // Agents highlevel States
 enum SINs_States { Susceptible, Infected, NonSusceptible, Initialization };
 
+// PreExisting
+enum PreExisting { Cardiovascular, Diabetes, Chronic_Repriratory, Hypertension, Cancer, NoPreExisting };
+
+// Age Distribution
+class AgeDistribution : public Distribution {
+public:
+	AgeDistribution() {}
+	double GetRV()
+	{
+		//https://www.census.gov/data/tables/2018/demo/age-and-sex/2018-age-sex-composition.html
+		double rv = Uniform_0_1();;
+		if (rv < 0.228877783)
+			return rand() % 18;
+		else if (rv < (0.228877783 + 0.355482663))
+			return rand() % 26 + 18;
+		else if (rv < (0.228877783 + 0.355482663 + 0.257576086))
+			return rand() % 19 + 45;
+		else if (rv < (0.093967291 + 0.228877783 + 0.355482663 + 0.257576086))
+			return rand() % 9 + 65;
+		else
+			return rand() % 25 + 75;
+	}
+};
+
+// Distribution for pre-existing
+class PreExistingDistribution {
+public:
+	static double Uniform_0_1()
+	{
+		return (((double)rand()) / (((double)RAND_MAX) + 1.0));
+	}
+	static PreExisting GetRVDisease(unsigned int age) {
+		double rv;
+		if (age < 18)
+			return NoPreExisting;
+		else if (age <= 44) {
+			rv = Uniform_0_1();
+			if (rv < 0.048)
+				return Cardiovascular;
+			else if (rv < (0.048 + 0.022))
+				return Diabetes;
+			else if (rv < (0.048 + 0.022 + 0.094))
+				return Chronic_Repriratory;
+			else if (rv < (0.048 + 0.022 + 0.094 + 0.088))
+				return Hypertension;
+			else if (rv < (0.048 + 0.022 + 0.094 + 0.088 + 0.018))
+				return Cancer;
+			else
+				return NoPreExisting;
+		}
+		else if (age <= 64) {
+			rv = Uniform_0_1();
+			if (rv < 0.118)
+				return Cardiovascular;
+			else if (rv < (0.118 + 0.022))
+				return Diabetes;
+			else if (rv < (0.118 + 0.022 + 0.128))
+				return Chronic_Repriratory;
+			else if (rv < (0.118 + 0.022 + 0.128 + 0.344))
+				return Hypertension;
+			else if (rv < (0.118 + 0.022 + 0.128 + 0.344 + 0.096))
+				return Cancer;
+			else
+				return NoPreExisting;
+		}
+		else if (age <= 74) {
+			rv = Uniform_0_1();
+			if (rv < 0.201)
+				return Cardiovascular;
+			else if (rv < (0.201 + 0.017))
+				return Diabetes;
+			else if (rv < (0.201 + 0.017 + 0.116))
+				return Chronic_Repriratory;
+			else if (rv < (0.201 + 0.017 + 0.116 + 0.467))
+				return Hypertension;
+			else if (rv < (0.201 + 0.017 + 0.116 + 0.467 + 0.189))
+				return Cancer;
+			else
+				return NoPreExisting;
+		}
+		else if (age >= 75) {
+			rv = Uniform_0_1();
+			if (rv < 0.257)
+				return Cardiovascular;
+			else if (rv < (0.257 + 0.013))
+				return Diabetes;
+			else if (rv < (0.257 + 0.013 + 0.083))
+				return Chronic_Repriratory;
+			else if (rv < (0.257 + 0.013 + 0.083 + 0.422))
+				return Hypertension;
+			else if (rv < (0.257 + 0.013 + 0.083 + 0.422 + 0.215))
+				return Cancer;
+			else
+				return NoPreExisting;
+		}
+	}
+};
+
+class InfectionExponential : public Probability {
+public:
+	InfectionExponential(double distanceRate) : _distanceRate(distanceRate) {}
+	float GetProb() {
+		return _distanceRate / 100;
+	}
+	float GetProb(float x) {
+		return exp(-_distanceRate * x) - exp(-FLT_MAX) - 0.05;
+	}
+private:
+	float _distanceRate;
+};
+
+class Death_Age_HealthCondition_Prob : public Probability {
+public:
+	Death_Age_HealthCondition_Prob() {
+	}
+	float GetProb() {
+		return 0;
+	}
+	float GetProb(float x) {
+		return 0;
+	}
+	virtual float HealthConditionGetProb(PreExisting health) {
+		switch (health)
+		{
+		case Cardiovascular:
+			return 0.105;
+			break;
+		case Diabetes:
+			return 0.073;
+			break;
+		case Chronic_Repriratory:
+			return 0.063;
+			break;
+		case Hypertension:
+			return 0.060;
+			break;
+		case Cancer:
+			return 0.056;
+			break;
+		case NoPreExisting:
+			return 0.09;
+			break;
+		default:
+			break;
+		}
+		return 0;
+	}
+	virtual float AgeGetProb(unsigned int age) {
+		if (age <= 9)
+			return 0;
+		else if (age <= 39)
+			return 0.002;
+		else if (age <= 49)
+			return 0.004;
+		else if (age <= 59)
+			return 0.013;
+		else if (age <= 69)
+			return 0.036;
+		else if (age <= 79)
+			return 0.08;
+		else
+			return 0.148;
+	}
+};
+
+class Recovered_Age_HealthCondition_Prob : public Death_Age_HealthCondition_Prob {
+	float HealthConditionGetProb(PreExisting health) {
+		return 1 - _da.HealthConditionGetProb(health);
+	}
+	virtual float AgeGetProb(unsigned int age) {
+		return 1 - _da.AgeGetProb(age);
+	}
+private:
+	Death_Age_HealthCondition_Prob _da;
+};
+
 // Holds statistics from simulation
 class STAT {
 public:
-	static unsigned int _numInfected;
-	static unsigned int _numSusceptible;
-	static unsigned int _numOther;
-	static void printSTAT(std::ofstream& outfile) {
-		using namespace std;
-		outfile << _numSusceptible << "," << _numInfected << "," << _numOther << "," << GetSimulationTime() << endl;
-		//outfile << "\tTally: { S = " << _numSusceptible << " , I = " << _numInfected << " , R = " << _numOther << " | Time " << GetSimulationTime() << endl << endl;
+	unsigned int _numInfected;
+	unsigned int _numSusceptible;
+	unsigned int _numNonSusceptible;
+	unsigned int _numDead;
+	unsigned int _numRecovered;
+	unsigned int _sample;
+	unsigned int _deadAge;
+	unsigned int _recoveryAge;
+	float _Termtime;
+
+	static STAT* GetInstance() {
+		if (_instance == nullptr)
+			_instance = DBG_NEW STAT;
+		return _instance;
+	}
+
+	void printSIRTallySTAT(std::ofstream& outfile) {
+		outfile << _numSusceptible << "," << _numInfected << "," << _numNonSusceptible << "," << GetSimulationTime() << std::endl;
+	}
+	// Application
+	//void printSpecificSTAT(std::ofstream& outfile) {
+	//	outfile << "\t" << _sample << " | Tally: { S = " << _numSusceptible << " | I = " << _numInfected << " | R = " << _numRecovered << " | D = " << _numDead << " | Time " << GetSimulationTime() << std::endl << std::endl;
+	//}
+	void printSEIRTallySTAT(std::ofstream& outfile) {
+		outfile << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << GetSimulationTime() << std::endl;
+	}
+
+	void CumStatistics(std::ofstream& outfile) {
+		if (_sample == 1) {
+			outfile << "Sample,NumSusceptible,NumInfected,NumRecovered,NumDead,CumAgeDead,CumAgeRecovery,Time" << std::endl;
+		}
+		outfile << _sample << "," << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << _deadAge << "," 
+			<< _recoveryAge << "," << _Termtime << std::endl;
 		
-		/*printf("Tally: { S = %i , I = %i , R = %i } | Time %f\n", _numSusceptible, _numInfected, _numOther, GetTime());*/
+		_sample++;
+	}
+
+	void ResetSTAT() {
+		_numInfected = 0;
+		_numSusceptible = 0;
+		_numNonSusceptible = 0;
+		_numDead = 0;
+		_numRecovered = 0;
+		_deadAge = 0;
+		_recoveryAge = 0;
+		_Termtime = 0.0f;
+	}
+
+	void AddRecovery(unsigned int age) {
+		_numRecovered++;
+		_recoveryAge += age;
+
+		_Termtime = GetSimulationTime();
+	}
+
+	void AddDeath(unsigned int age) {
+		_numDead++;
+		_deadAge += age;
+
+		_Termtime = GetSimulationTime();
+	}
+private:
+	static STAT* _instance;
+	STAT() {
+		_numInfected = 0;
+		_numSusceptible = 0;
+		_numNonSusceptible = 0;
+		_numDead = 0;
+		_numRecovered = 0;
+		_sample = 0;
+		_deadAge = 0;
+		_recoveryAge = 0;
+		_Termtime = 0.0f;
 	}
 };
 
@@ -48,14 +288,15 @@ class Parameter {
 public:
 	Parameter(unsigned int numPara) : _numParameters(numPara) {}
 	unsigned int GetNumParameters() { return _numParameters; }
+	virtual ~Parameter() {}
 protected:
 	unsigned int _numParameters;
 };
 class Distance : public Parameter {
 public:
 	Distance(unsigned int numDistance) : Parameter{2} {
-		_distance = new float[numDistance];				// Para 1
-		_lowLevelState = new std::string[numDistance]; // para 2
+		_distance = DBG_NEW float[numDistance];				// Para 1
+		_lowLevelState = DBG_NEW std::string[numDistance]; // para 2
 		_numDistances = numDistance;
 		_index = 0;
 	}
@@ -75,8 +316,8 @@ public:
 			return -1;
 	}
 	~Distance() {
-		delete _distance;
-		//delete _highLevelState;
+		delete[] _distance;
+		delete[] _lowLevelState;
 	}
 private:
 	float* _distance;
@@ -116,22 +357,26 @@ public:
 		// Gets the agents low level state (infected, Susceptible, or other state)
 		SINs_States GetHighLevelState() { return _highLevelState; }
 
-		// Setting High Level State (Infected, Susceptible, or other) and setting statistics
-		void SetHighLevelState(SINs_States subState);
+		//// Setting High Level State (Infected, Susceptible, or other) and setting statistics
+		//void SetHighLevelState(SINs_States subState);
 
-		void InitialSetHighLevelState();
+		//void InitialSetHighLevelState();
 
 		// Setting Low Level State
 		void SetLowLevelState(std::string state) { _lowLevelState = state; }
+
+		virtual ~AgentStateEventAction() {}
 	protected:
 		Agent* _a;
 		SINs_States _highLevelState{ Initialization };
 		std::string _lowLevelState;
-		//static DiseaseInfluence* _dI;
 
 		// Next States
 		std::tuple < std::string, Probability*, Distribution*>* _nextStates;
 		unsigned int _numNextStates;
+
+		// Statistics
+		unsigned int* _stateStat;
 	};
 
 
@@ -159,11 +404,24 @@ public:
 	// Get Agent Id
 	unsigned int GetId() { return _id; }
 
+	// Get Age
+	unsigned int GetAge() { return _age; }
+
+	// Get the healthy states 
+	PreExisting GetPreExisting() {
+		return _PreExisting;
+	}
+
+	// Destructor
+	~Agent() {
+		delete _agentState;
+	}
 private:
 	// state Variables
 	Location _location;
 	unsigned int _age;
 	unsigned int _id;
+	PreExisting _PreExisting; // Cardiovascular, Diabetes, Chronic Respiratory, Hypertension, Cancer
 	static unsigned int _nextId;
 	AgentStateEventAction* _agentState;
 	
@@ -178,16 +436,18 @@ public:
 		_a = nullptr; 
 		_highLevelState = Susceptible;
 		_lowLevelState = "Susceptible";
+		_stateStat = &STAT::GetInstance()->_numSusceptible;
 	}
 
 	SusceptibleStateEvent(Agent* a) { 
 		_a = a; 
 		_highLevelState = Susceptible;
 		_lowLevelState = "Susceptible";
+		_stateStat = &STAT::GetInstance()->_numSusceptible;
 	}
 
-	AgentStateEventAction* New(Agent* a) { return new SusceptibleStateEvent(a); }
-	AgentStateEventAction* New() { return new SusceptibleStateEvent; }
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW SusceptibleStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW SusceptibleStateEvent; }
 
 	virtual void StateSpecificProcess();
 
@@ -201,18 +461,50 @@ public:
 		_a = nullptr;  
 		_highLevelState = Infected;
 		_lowLevelState = "Infected";
+		_stateStat = &STAT::GetInstance()->_numInfected;
 	}
 
 	InfectedStateEvent(Agent* a) { 
 		_a = a;
 		_highLevelState = Infected;
 		_lowLevelState = "Infected";
+		_stateStat = &STAT::GetInstance()->_numInfected;
 	}
 
-	AgentStateEventAction* New(Agent* a) { return new InfectedStateEvent(a); }
-	AgentStateEventAction* New() { return new InfectedStateEvent; }
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW InfectedStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW InfectedStateEvent; }
 
 	virtual void StateSpecificProcess();
+};
+// APPLICATION
+class ExposedStateEvent : public InfectedStateEvent {
+public:
+	ExposedStateEvent() {
+		_lowLevelState = "Exposed";
+	}
+
+	ExposedStateEvent(Agent* a) : InfectedStateEvent{ a } {
+		_lowLevelState = "Exposed";
+	}
+
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW ExposedStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW ExposedStateEvent; }
+};
+class SymptomStateEvent : public InfectedStateEvent {
+public:
+	SymptomStateEvent() {
+		_lowLevelState = "Symptom";
+	}
+
+	SymptomStateEvent(Agent* a) : InfectedStateEvent{ a } {
+		_lowLevelState = "Symptom";
+	}
+
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW SymptomStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW SymptomStateEvent; }
+	
+	// Application
+	virtual bool StateInteractionProcess(Parameter* list);
 };
 
 // NonSusceptibleStateEvents
@@ -222,25 +514,60 @@ public:
 		_a = nullptr;
 		_highLevelState = NonSusceptible;
 		_lowLevelState = "NonSusceptible";
+		_stateStat = &STAT::GetInstance()->_numNonSusceptible;
 	}
 
 	NonSusceptibleStateEvent(Agent* a) { 
 		_a = a;
 		_highLevelState = NonSusceptible;
 		_lowLevelState = "NonSusceptible";
+		_stateStat = &STAT::GetInstance()->_numNonSusceptible;
 	}
 
-	AgentStateEventAction* New(Agent* a) { return new NonSusceptibleStateEvent(a); }
-	AgentStateEventAction* New() { return new NonSusceptibleStateEvent; }
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW NonSusceptibleStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW NonSusceptibleStateEvent; }
 
 	virtual void StateSpecificProcess();
+}; 
+// APPLICATION
+class RecoveredStateEvent : public NonSusceptibleStateEvent {
+public:
+	RecoveredStateEvent() {
+		_lowLevelState = "Recovered";
+	}
+
+	RecoveredStateEvent(Agent* a) : NonSusceptibleStateEvent{ a } {
+		_lowLevelState = "Recovered";
+	}
+
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW RecoveredStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW RecoveredStateEvent; }
+
+	// Application
+	virtual bool StateInteractionProcess(Parameter* list);
+};
+class DeadStateEvent : public NonSusceptibleStateEvent {
+public:
+	DeadStateEvent() {
+		_lowLevelState = "Dead";
+	}
+
+	DeadStateEvent(Agent* a) : NonSusceptibleStateEvent{ a } {
+		_lowLevelState = "Dead";
+	}
+
+	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW DeadStateEvent(a); }
+	virtual AgentStateEventAction* New() { return DBG_NEW DeadStateEvent; }
+
+	// Application
+	virtual bool StateInteractionProcess(Parameter* list);
+
 };
 
 // State Mapping
 class StateMap {
 private:
 	std::tuple < std::string, Probability *, Distribution*>** _nextState;
-	float** _probabilities;
 	Agent::AgentStateEventAction** _newAgentEvents;
 	std::string* _currStates;
 	unsigned int _stateIndex;
@@ -248,20 +575,19 @@ private:
 	unsigned int _numStates;
 	static StateMap* _instance;
 public:
-	StateMap() : _nextState(nullptr), _newAgentEvents(nullptr), _currStates(nullptr), _stateIndex(0), _numNextStates(nullptr), _probabilities(nullptr) {}
+	StateMap() : _nextState(nullptr), _newAgentEvents(nullptr), _currStates(nullptr), _stateIndex(0), _numNextStates(nullptr) {}
 
 	static StateMap* GetInstance() {
 		if (_instance == nullptr)
-			_instance = new StateMap;
+			_instance = DBG_NEW StateMap;
 		return _instance;
 	}
 
 	void Initialize(unsigned int numStates) {
-		_currStates = new std::string[numStates];
-		_newAgentEvents = new Agent::AgentStateEventAction * [numStates];
-		_nextState = new std::tuple < std::string, Probability*, Distribution*> * [numStates];
-		_numNextStates = new unsigned int[numStates];
-		_probabilities = new float*[numStates];
+		_currStates = DBG_NEW std::string[numStates];
+		_newAgentEvents = DBG_NEW Agent::AgentStateEventAction * [numStates];
+		_nextState = DBG_NEW std::tuple < std::string, Probability*, Distribution*> * [numStates];
+		_numNextStates = DBG_NEW unsigned int[numStates];
 		_numStates = numStates;
 	}
 
@@ -298,13 +624,20 @@ public:
 		exit(0);
 	}
 
-	Agent::AgentStateEventAction* GetAgentEventAction(std::string State) {
+	Agent::AgentStateEventAction* GetAgentEventAction(std::string State, Agent * a) {
 		for (int i = 0; i < _numStates; i++) {
 			if (_currStates[i] == State)
-				return _newAgentEvents[i];
+				return _newAgentEvents[i]->New(a);
 		}
 		printf("ERROR at GetAgentEventAction\a\n");
 		exit(0);
+	}
+protected:
+	~StateMap() {
+		delete[] _currStates;
+		delete[] _newAgentEvents;
+		delete[] _nextState;
+		delete[] _numNextStates;
 	}
 };
 #endif

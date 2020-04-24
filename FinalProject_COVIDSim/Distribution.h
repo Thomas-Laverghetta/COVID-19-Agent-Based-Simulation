@@ -9,6 +9,7 @@ public:
 	virtual float GetProb(float x) = 0;
 };
 
+// Application Probability Distributions
 class ConstantProbability : public Probability {
 public:
 	ConstantProbability(double probability) : _probability(probability) {}
@@ -24,18 +25,6 @@ private:
 	float _probability;
 };
 
-class InfectionExponential : public Probability {
-public:
-	InfectionExponential(double distanceRate) : _distanceRate(distanceRate) {}
-	float GetProb() {
-		return _distanceRate / 100;
-	}
-	float GetProb(float x) {
-		return exp(-_distanceRate * x) - exp(-FLT_MAX) - 0.05;
-	}
-private:
-	float _distanceRate;
-};
 
 
 class Distribution
@@ -43,7 +32,6 @@ class Distribution
 public:
 	Distribution();
 	virtual double GetRV() = 0;
-	virtual double GetProb(double x) { return 0; }
 protected:
 	double Uniform_0_1();
 };
@@ -122,5 +110,7 @@ private:
 	int _scale;
 	double _shape;
 };
+
+
 
 #endif
