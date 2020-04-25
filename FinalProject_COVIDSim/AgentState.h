@@ -6,6 +6,7 @@
 #include <iostream>
 #include "Variant.h"
 #include "SimulationExecutive.h"
+#include <unordered_map>
 
 
 // Agents highlevel States
@@ -417,8 +418,50 @@ private:
 	bool _transitionScheduled;
 };
 
+typedef Agent::AgentStateEventAction StateEvent;
+
+// Registers all states with their events
+class StateEventMap{
+public:
+	// Singleton implementation - Static implement would also work
+	static StateEventMap * GetInstance(){
+		if (!_instance)
+			_instance = new StateEventMap;
+		return _instance;
+	}
+
+	// Registering statesEvent
+	bool RegisterStateEvent(StateEvent * newRef){
+		// Registering stateEvent low-lvl name and ref to stateEvnet
+		_stateEventMap.emplace(newRef->GetLowLevelState(), newRef);
+		return true;
+	}
+
+	StateEvent * GetStateEvent(std::string stateName){
+		// Finding event based on state name
+		std::unordered_map<std::string, StateEvent *>::const_iterator iter = _stateEventMap.find(stateName);
+		
+		// Error checking that user properly placed correct stateEvent low-lvl name
+		if (iter != _stateEventMap.end())
+			return iter->second;
+		else{ // if stateName was not found
+			std::cout << "\a ERROR Finding Event\n";
+			exit(0); // terminate program
+			return nullptr;
+		}
+	}
+private:
+	static StateEventMap * _instance;
+	StateEventMap(){ }
+
+	// Map from stateEvent name to StateEvent ref
+	std::unordered_map<std::string, StateEvent *> _stateEventMap;
+
+};
+StateEventMap * StateEventMap::_instance = nullptr;
+
 // SusceptibleStateEvents
-class SusceptibleStateEvent : public Agent::AgentStateEventAction {
+class SusceptibleStateEvent : public StateEvent {
 public:
 	SusceptibleStateEvent() { 
 		_a = nullptr; 
@@ -440,10 +483,14 @@ public:
 	virtual void StateSpecificProcess();
 
 	virtual bool StateInteractionProcess(Parameter* list);
+
+	static bool SusceptibleRegister;
 };
+// Registers StateEvent
+bool SusceptibleStateEvent::SusceptibleRegister = StateEventMap::GetInstance()->RegisterStateEvent(new SusceptibleStateEvent);
 
 // InfectedStateEvents
-class InfectedStateEvent : public Agent::AgentStateEventAction {
+class InfectedStateEvent : public StateEvent {
 public:
 	InfectedStateEvent() { 
 		_a = nullptr;  
@@ -463,7 +510,11 @@ public:
 	virtual AgentStateEventAction* New() { return DBG_NEW InfectedStateEvent; }
 
 	virtual void StateSpecificProcess();
+
+	static bool InfectedRegister;
 };
+bool InfectedStateEvent::InfectedRegister = StateEventMap::GetInstance()->RegisterStateEvent(new InfectedStateEvent);
+
 // APPLICATION
 class ExposedStateEvent : public InfectedStateEvent {
 public:
@@ -477,7 +528,12 @@ public:
 
 	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW ExposedStateEvent(a); }
 	virtual AgentStateEventAction* New() { return DBG_NEW ExposedStateEvent; }
+
+private:
+	static bool ExposedRegister;
 };
+bool ExposedStateEvent::ExposedRegister = StateEventMap::GetInstance()->RegisterStateEvent(new ExposedStateEvent);
+
 class SymptomStateEvent : public InfectedStateEvent {
 public:
 	SymptomStateEvent() {
@@ -493,10 +549,14 @@ public:
 	
 	// Application
 	virtual bool StateInteractionProcess(Parameter* list);
+
+private:
+	static bool SymptomRegister;
 };
+bool SymptomStateEvent::SymptomRegister = StateEventMap::GetInstance()->RegisterStateEvent(new SymptomStateEvent);
 
 // NonSusceptibleStateEvents
-class NonSusceptibleStateEvent : public Agent::AgentStateEventAction {
+class NonSusceptibleStateEvent : public StateEvent {
 public:
 	NonSusceptibleStateEvent() {
 		_a = nullptr;
@@ -516,7 +576,12 @@ public:
 	virtual AgentStateEventAction* New() { return DBG_NEW NonSusceptibleStateEvent; }
 
 	virtual void StateSpecificProcess();
+
+private:
+	static bool NonSusceptibleRegister;
 }; 
+bool NonSusceptibleStateEvent::NonSusceptibleRegister = StateEventMap::GetInstance()->RegisterStateEvent(new NonSusceptibleStateEvent);
+
 // APPLICATION
 class RecoveredStateEvent : public NonSusceptibleStateEvent {
 public:
@@ -533,7 +598,11 @@ public:
 
 	// Application
 	virtual bool StateInteractionProcess(Parameter* list);
+
+	static bool RecoveredRegister;
 };
+bool RecoveredStateEvent::RecoveredRegister = StateEventMap::GetInstance()->RegisterStateEvent(new RecoveredStateEvent);
+
 class DeadStateEvent : public NonSusceptibleStateEvent {
 public:
 	DeadStateEvent() {
@@ -550,7 +619,9 @@ public:
 	// Application
 	virtual bool StateInteractionProcess(Parameter* list);
 
+	static bool DeadRegister;
 };
+bool DeadStateEvent::DeadRegister = StateEventMap::GetInstance()->RegisterStateEvent(new DeadStateEvent);
 
 // State Mapping
 class StateMap {
@@ -558,12 +629,12 @@ private:
 	std::tuple < std::string, Probability *, Variant*>** _nextState;
 	Agent::AgentStateEventAction** _newAgentEvents;
 	std::string* _currStates;
-	unsigned int _stateIndex;
+	unsigned int _stateIndex, _eventIndex;
 	unsigned int* _numNextStates;
 	unsigned int _numStates;
 	static StateMap* _instance;
 public:
-	StateMap() : _nextState(nullptr), _newAgentEvents(nullptr), _currStates(nullptr), _stateIndex(0), _numNextStates(nullptr) {}
+	StateMap() : _nextState(nullptr), _newAgentEvents(nullptr), _currStates(nullptr), _stateIndex(0), _eventIndex(0), _numNextStates(nullptr) {}
 
 	static StateMap* GetInstance() {
 		if (_instance == nullptr)
@@ -591,9 +662,18 @@ public:
 		_stateIndex++;
 	}
 
-	void RegisterStatesToEvents(Agent::AgentStateEventAction** newAgentEvents) {
+	// Register all events at once
+	void RegisterStatesToEvents_AllEvents(Agent::AgentStateEventAction** newAgentEvents) {
 		// Registering events associated with states 
 		_newAgentEvents = newAgentEvents;
+		_eventIndex = _numStates;
+	}
+
+	// Registers event one at a time
+	void RegisterStatesToEvents_IndividualEvent(Agent::AgentStateEventAction* newAgentEvents) {
+		// Registering events associated with states 
+		_newAgentEvents[_eventIndex] = newAgentEvents;
+		_eventIndex++;
 	}
 
 	std::tuple < std::string, Probability*, Variant*>* GetNextStates(std::string currState, unsigned int& numPairs) {

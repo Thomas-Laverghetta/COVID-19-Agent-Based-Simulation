@@ -1,3 +1,23 @@
+/* 
+      __      ___
+    /   \   /	 \   /    /
+   /    /  /	 /  /    /
+   \___/  /____ /   \___/
+
+ Date: 04.01.2020
+ Name: Thomas J Laverghetta, Kyle Tanyag, Cierra Hall, Jayson
+ Project: To make 
+
+ Inputs: 
+	XML file containing agent states and their transitions
+ 
+ Outputs: 
+	Output file containing each move agents made in their respected environments
+
+ Program Description: 
+	
+
+*///**********************************************************************************
 #include "Environment.h"
 #include "DerivEnv.h"
 #include "HomeEnvironment.h"
@@ -5,11 +25,12 @@
 #include "tinyxml2.h"
 #include <stdio.h>
 #include <string.h>
-#include <unordered_map>
 
-const char* parameterFile = "parameters.xml";
-StateMap* instance = StateMap::GetInstance();
-std::unordered_map<std::string, Variant*> VariantMap;
+// Global Variables for Main
+const char* parameterFile = "parameters.xml"; 						// File with states and their transitions
+StateMap* stateInstance = StateMap::GetInstance(); 					// Instance to StateMap 
+StateEventMap * stateEventInstance = StateEventMap::GetInstance();	// Instance to StateEventMap 
+std::unordered_map<std::string, Variant*> VariantMap;				// 
 std::unordered_map<std::string, Probability*> probabilityMap;
 
 // Loading from XML file
@@ -34,6 +55,9 @@ bool Load(const char* filename)
 			int numTransitions;
 			const char* stateName;
 			pElem->QueryStringAttribute("name", &stateName);
+			
+			// Getting StateEvent and Register it to the curr list of event to use for sim
+			stateInstance->RegisterStatesToEvents_IndividualEvent(stateEventInstance->GetStateEvent(stateName));
 			std::cout << stateName << std::endl;
 
 			// Number of transition that can occur
@@ -83,22 +107,25 @@ bool Load(const char* filename)
 					std::get<2>(transitionRow[i]) = VariantMap.find(VarNameStr)->second->New(param);
 				}
 
-				// Setting Transition Row to StateMAP
-				instance->RegisterStateToNextState(stateName, transitionRow, numTransitions);
+				// Setting Transition Row to StateMAP (state's name, its transition rows, and number of possible transitions)
+				stateInstance->RegisterStateToNextState(stateName, transitionRow, numTransitions);
 			}
 			else {
 				// Zero transition row
 				std::tuple < std::string, Probability*, Variant*> transitionRow = std::make_tuple("", nullptr, nullptr);
-				instance->RegisterStateToNextState(stateName, &transitionRow, 0);
+				
+				// Setting Transition Row to StateMAP (state's name, its transition rows, and number of possible transitions)
+				stateInstance->RegisterStateToNextState(stateName, &transitionRow, 0);
 			}
 		}
+		// Number of states user wants to use during simulation
 		else if (elementName == "numStates")
 		{
 			int numStates;
 			pElem->QueryAttribute("num", &numStates);
 			
 			// Initializing
-			StateMap::GetInstance()->Initialize(numStates);
+			stateInstance->Initialize(numStates);
 		}
 	}
 
@@ -107,6 +134,8 @@ bool Load(const char* filename)
 
 // Must Call this function first before anything else
 void InitializeInfectionSimulation() {
+
+	//// Implement using StateEventRegister for Variant and probability
 	// Imitializing Probability Map (used for probability between transitions)
 	probabilityMap = { 
 		{"Constant", new ConstantProb(0)},
@@ -127,19 +156,11 @@ void InitializeInfectionSimulation() {
 		{"Erlang", new ErlangRV(0,0)}
 	};
 
-
+	// Initializing Event Map
 	Load(parameterFile);
 
 
 }
-
-/*
-	Basic How to use example:
-
-	First - initialize StateMap by giving it the number of state to be used during simulation (S I R).
-
-	Second - Register states and there coorisponding transition
-*/
 
 // Everyone interacting with eachother everyday
 void Application1() {
@@ -169,16 +190,16 @@ void Application2() {
 int main() {
 	// Initializes simulation parameters for infection sim
 	InitializeInfectionSimulation();
+	
+	// Initializing Random Seed for probabilities
 	srand(time(NULL));
 
-	// Places in the events that corrispond to the same order associated states were placed
-	// Try to do in XML
-	Agent::AgentStateEventAction* StateEvents[] = { DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, DBG_NEW SymptomStateEvent, DBG_NEW RecoveredStateEvent, DBG_NEW DeadStateEvent };
-	StateMap::GetInstance()->RegisterStatesToEvents(StateEvents);
+	// Application use for simulation
 	Application1();
 	std::cout << "<termaination: press enter to exit> ";
 	std::cin.get();
 	
+	// Memory Leak Checker
 	_CrtDumpMemoryLeaks();
 	return 0;
 }
@@ -208,3 +229,7 @@ int main() {
 //std::string DeadState = "Dead"; std::tuple < std::string, Probability*, Variant*> DeadTransition = std::make_tuple("", nullptr, nullptr);
 //instance->RegisterStateToNextState(DeadState, &DeadTransition, 0);
 
+	// Places in the events that corrispond to the same order associated states were placed
+	// Try to do in XML
+	// Agent::AgentStateEventAction* StateEvents[] = { DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, DBG_NEW SymptomStateEvent, DBG_NEW RecoveredStateEvent, DBG_NEW DeadStateEvent };
+	// StateMap::GetInstance()->RegisterStatesToEvents_AllEvents(StateEvents);
