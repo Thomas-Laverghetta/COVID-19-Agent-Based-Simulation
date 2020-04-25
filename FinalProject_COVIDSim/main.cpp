@@ -1,22 +1,35 @@
-/* 
-      __      ___
+/*   __      ___
     /   \   /	 \   /    /
    /    /  /	 /  /    /
    \___/  /____ /   \___/
 
  Date: 04.01.2020
- Name: Thomas J Laverghetta, Kyle Tanyag, Cierra Hall, Jayson
- Project: To make 
+ Names and Main Tasking: 
+ 	Thomas Laverghetta - Project Lead, SINs Developer, and Simulation Framework
+	Kyle Tanyag - Front End Developer (Application Developer)
+	Cierra Hall - Researcher and Documentation Chief Editor
+	Jayson Kreger - Visualization using Unity API and Collecting Statistics
+	Bradon Waddell - Descrete-Event Simulation Executive
+ 
+ Project:
+ 	To design and implement an agent-based simulator to simulate the effects of infections
+	spreading through a population. 
 
  Inputs: 
-	XML file containing agent states and their transitions
+	XML file containing agent states and their transitions. Read Parameter.xml to see
+	intructions on use. 
  
  Outputs: 
-	Output file containing each move agents made in their respected environments
+	Output file containing agent's: identifier, locations (including specific environment), 
+	high-lvl state, and low-lvl state. Another output file containing statistics for that
+	simulation ran: sample#, #Suscetiple, #infected, #NonSusceptiple, and Infection Time.
+	More statistics can be generated at the user's discretion.   
 
  Program Description: 
 	
 
+ For Questions:
+	Please email Thomas Laverghetta (tlave002@odu.edu)
 *///**********************************************************************************
 #include "Environment.h"
 #include "DerivEnv.h"
@@ -198,7 +211,9 @@ int main() {
 
 	// Application use for simulation
 	Application1();
-	std::cout << "<termaination: press enter to exit> ";
+
+	// Termination of simulation
+	std::cout << "<termaination: END OF SIM> press enter to exit: ";
 	std::cin.get();
 	
 	// Memory Leak Checker
