@@ -185,7 +185,7 @@ void Application1() {
 	//}
 }
 
-// Quaritine 
+// Quarantining 
 void Application2() {
 	//for (int i = 0; i < 100; i++) {
 		DerivEnv e("WorldInteraction", DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, 10, 1, 50, 50, 3, 1.0f, DBG_NEW ConstantRV(1));
