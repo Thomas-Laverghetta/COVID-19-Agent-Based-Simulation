@@ -157,9 +157,11 @@ void InitializeInfectionSimulation() {
 	};
 
 	// Initializing Event Map
-	Load(parameterFile);
-
-
+	if (!Load(parameterFile)){
+		std::cout << "\a ERROR XML FILE NOT FOUND";
+		exit(0);
+	}
+		
 }
 
 // Everyone interacting with eachother everyday
