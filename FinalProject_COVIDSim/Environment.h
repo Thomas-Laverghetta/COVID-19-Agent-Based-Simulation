@@ -43,9 +43,10 @@ protected:
 	void Arrive(Agent* a);
 	virtual void EnvironmentProcess() = 0;
 	void MoveAgents();
-	Environment * NextEnvironment();
-	void PrintContentsOfEnvironment(Agent * a);
 	void CheckAgentDistances();
+
+	// Getting Next Environment 
+	Environment * NextEnvironment();
 	
 	//--------------------------------DATA_Struct----------------------------
 	// List of agents for current environment
@@ -89,18 +90,6 @@ protected:
 		// Return Head of list
 		Node* GetAgentHead() {
 			return _head;
-		}
-
-		void PrintAgents() {
-			Node* curr = _head;
-			// States
-			if (curr) {
-				do {
-					_env->PrintContentsOfEnvironment(curr->_a);
-					curr = curr->_next;
-
-				} while (curr != _head);
-			}
 		}
 
 		// destructor
@@ -170,17 +159,16 @@ protected:
 	Environment** _nextEnvironments;
 	float* _nextEnvironmentProbabilities;
 
+	// Id
 	unsigned int _id;
 	static unsigned int _nextId;
-	static std::ofstream _SIRoutputCompress;
-	static std::ofstream _SEIRoutputCompressed;
-	static std::ofstream _statisticsFile;
 
 	virtual ~Environment() {
 		delete _nextEnvironmentProbabilities;
 	}
 private:
 	//--------------------------------Events---------------------------------
+	// Control loop for environment
 	class UpdateEnvironmentEvent : public EventAction {
 	public:
 		UpdateEnvironmentEvent(Environment* env) : _env(env)
@@ -192,20 +180,19 @@ private:
 			_env->EnvironmentProcess();
 
 			// Scheduling next move
+			// If there is no-more infected then terminate simulation and output statistics
 			if (STAT::GetInstance()->_numInfected > 0)
 				ScheduleEventIn(_env->_moveFrequency, this);
 			else if(!_StatEventSch) {
-				ScheduleEventIn(0, DBG_NEW StatEvent(_env));
+				ScheduleEventIn(0, DBG_NEW StatEvent);
 				_StatEventSch = true;
 			}
-
-			// Diplay Statistics
-			//STAT::GetInstance()->printSIRTallySTAT(_env->_SIRoutputCompress);
-			//STAT::GetInstance()->printSEIRTallySTAT(_env->_SEIRoutputCompressed);
 		}
 	private:
 		Environment* _env;
 	};
+
+	// Depart to next environment
 	class DepartEvent : public EventAction {
 	public:
 		DepartEvent(Environment* env)
@@ -219,17 +206,18 @@ private:
 		Environment* _env;
 	};
 
+	/*Outputs compiled statistics from current simulation*/
 	class StatEvent : public EventAction {
 	public:
-		StatEvent(Environment* env) : _env(env) {}
+		StatEvent() {}
 
 		void Execute() {
-			STAT::GetInstance()->CumStatistics(_env->_statisticsFile);
-			_env->_StatEventSch = false;
-			_env = nullptr;
+			// outputing statistics for simulation sample
+			STAT::GetInstance()->CumStatistics();
+
+			// Telling Environment that it is done outputing statistics and can be rescheduled
+			Environment::_StatEventSch = false;
 		}
-	private:
-		Environment* _env;
 	};
 
 	static bool _StatEventSch;

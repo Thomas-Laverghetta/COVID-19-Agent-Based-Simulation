@@ -180,7 +180,7 @@ void InitializeInfectionSimulation() {
 // Everyone interacting with eachother everyday
 void Application1() {
 	//for (int i = 0; i < 100; i++) {
-		DerivEnv e("Simulation", DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, 100, 1, 3, 3, 3, 1.0f);
+		DerivEnv e("Simulation", DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, 100, 1, 20, 20, 6, 1.0f);
 		RunSimulation(100.0f);
 	//}
 }

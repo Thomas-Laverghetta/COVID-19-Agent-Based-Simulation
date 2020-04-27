@@ -8,7 +8,7 @@ StateMap* StateMap::_instance = nullptr;
 StateEventMap* StateEventMap::_instance = nullptr;
 
 
-Agent::Agent(Location& loc, AgentStateEventAction* aea, unsigned int age)
+Agent::Agent(Location loc, AgentStateEventAction* aea, unsigned int age)
 {
 	// Initializing variables
 	_id = _nextId++;
@@ -34,6 +34,14 @@ void Agent::AgentInteraction(Parameter* list)
 		// calling function to determine whether to change states and what state
 		_transitionScheduled = _agentState->StateInteractionProcess(list);
 	}
+}
+
+void Agent::SetLocation(Location& loc)
+{
+	_location = loc;
+	
+	// Track Movements
+	STAT::GetInstance()->AgentTrackerStatistics(this);
 }
 
 //----------------------------MASTER_EXECUTE-------------------------
@@ -63,6 +71,9 @@ void Agent::AgentStateEventAction::Execute()
 	unsigned int i = 0;
 	_nextStates = StateMap::GetInstance()->GetNextStates(_lowLevelState, _numNextStates);
 
+	// Statistics of agent after state change
+	STAT::GetInstance()->AgentTrackerStatistics(_a);
+
 	// Specific State Event Execution
 	StateSpecificProcess();
 }
@@ -89,4 +100,10 @@ bool Agent::AgentStateEventAction::StateInteractionProcess(Parameter* list)
 		}
 	}
 	return true;
+}
+
+// STAT FUNCTIONS
+void STAT::AgentTrackerStatistics(Agent * a)
+{
+	_agentTracker << a->GetId() << ',' << a->GetLocation()._x << ',' << a->GetLocation()._y << ',' << a->GetLocation()._envID << ',' << a->GetHighLevelState() << ',' << a->GetLowLevelState() << ',' << GetSimulationTime() << std::endl;
 }

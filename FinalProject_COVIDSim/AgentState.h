@@ -186,88 +186,11 @@ private:
 	Death_Age_HealthCondition_Prob _da;
 };
 
-// Holds statistics from simulation
-class STAT {
-public:
-	unsigned int _numInfected;
-	unsigned int _numSusceptible;
-	unsigned int _numNonSusceptible;
-	unsigned int _numDead;
-	unsigned int _numRecovered;
-	unsigned int _sample;
-	unsigned int _deadAge;
-	unsigned int _recoveryAge;
-	float _Termtime;
-
-	static STAT* GetInstance() {
-		if (_instance == nullptr)
-			_instance = DBG_NEW STAT;
-		return _instance;
-	}
-
-	void printSIRTallySTAT(std::ofstream& outfile) {
-		outfile << _numSusceptible << "," << _numInfected << "," << _numNonSusceptible << "," << GetSimulationTime() << std::endl;
-	}
-	// Application
-	//void printSpecificSTAT(std::ofstream& outfile) {
-	//	outfile << "\t" << _sample << " | Tally: { S = " << _numSusceptible << " | I = " << _numInfected << " | R = " << _numRecovered << " | D = " << _numDead << " | Time " << GetSimulationTime() << std::endl << std::endl;
-	//}
-	void printSEIRTallySTAT(std::ofstream& outfile) {
-		outfile << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << GetSimulationTime() << std::endl;
-	}
-
-	void CumStatistics(std::ofstream& outfile) {
-		if (_sample == 0) {
-			outfile << "Sample,NumSusceptible,NumInfected,NumRecovered,NumDead,CumAgeDead,CumAgeRecovery,Time" << std::endl;
-		}
-		_sample++;
-		outfile << _sample << "," << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << _deadAge << "," 
-			<< _recoveryAge << "," << _Termtime << std::endl;		
-	}
-
-	void ResetSTAT() {
-		_numInfected = 0;
-		_numSusceptible = 0;
-		_numNonSusceptible = 0;
-		_numDead = 0;
-		_numRecovered = 0;
-		_deadAge = 0;
-		_recoveryAge = 0;
-		_Termtime = 0.0f;
-	}
-
-	void AddRecovery(unsigned int age) {
-		_numRecovered++;
-		_recoveryAge += age;
-
-		_Termtime = GetSimulationTime();
-	}
-
-	void AddDeath(unsigned int age) {
-		_numDead++;
-		_deadAge += age;
-
-		_Termtime = GetSimulationTime();
-	}
-private:
-	static STAT* _instance;
-	STAT() {
-		_numInfected = 0;
-		_numSusceptible = 0;
-		_numNonSusceptible = 0;
-		_numDead = 0;
-		_numRecovered = 0;
-		_sample = 0;
-		_deadAge = 0;
-		_recoveryAge = 0;
-		_Termtime = 0.0f;
-	}
-};
-
 // Location Data Structure
 struct Location {
 	unsigned int _x;
 	unsigned int _y;
+	unsigned int _envID;
 };
 
 /* Disease Influence
@@ -337,19 +260,11 @@ public:
 		// Setting Agent variable
 		void SetAgent(Agent* a) { _a = a; }
 
-		// Setting Diesease Influence
-		//static void SetDiseaseInfluence(DiseaseInfluence* DI) { _dI = DI; }
-
 		// Gets low level that is defined by the developer
 		std::string GetLowLevelState() { return _lowLevelState; }
 
 		// Gets the agents low level state (infected, Susceptible, or other state)
 		SINs_States GetHighLevelState() { return _highLevelState; }
-
-		//// Setting High Level State (Infected, Susceptible, or other) and setting statistics
-		//void SetHighLevelState(SINs_States subState);
-
-		//void InitialSetHighLevelState();
 
 		// Setting Low Level State
 		void SetLowLevelState(std::string state) { _lowLevelState = state; }
@@ -370,7 +285,7 @@ public:
 
 
 	// Constructor for initial postiion, first state event, and age of the agent
-	Agent(Location& loc, AgentStateEventAction* aea, unsigned int age);
+	Agent(Location loc, AgentStateEventAction* aea, unsigned int age);
 
 	// Runs State Transition Function pointer to determine next state transition to occur
 	void AgentInteraction(Parameter* list);
@@ -385,7 +300,7 @@ public:
 	Location& GetLocation() { return _location; }
 
 	// Setting Location
-	void SetLocation(Location& loc) { _location = loc; }
+	void SetLocation(Location& loc);
 
 	// Setting the event schedule for events
 	void SetScheduled(bool sch) { _transitionScheduled = sch; }
@@ -541,6 +456,83 @@ protected:
 		delete[] _newAgentEvents;
 		delete[] _nextState;
 		delete[] _numNextStates;
+	}
+};
+
+// Holds statistics from simulation
+class STAT {
+public:
+	// Variables Trackers
+	unsigned int _numInfected;
+	unsigned int _numSusceptible;
+	unsigned int _numNonSusceptible;
+	unsigned int _sample;
+
+	// Application Specific
+	unsigned int _deadAge;
+	unsigned int _recoveryAge;
+	unsigned int _numDead;
+	unsigned int _numRecovered;
+
+	// Output Files
+	std::ofstream _agentTracker;
+	std::ofstream _statisticsFile;			// Output Statistics at the end of each simulation
+	
+	// Singleton
+	static STAT* GetInstance() {
+		if (_instance == nullptr)
+			_instance = DBG_NEW STAT;
+		return _instance;
+	}
+
+	void CumStatistics() {
+		if (_sample == 0) {
+			_statisticsFile << "Sample,NumSusceptible,NumInfected,NumRecovered,NumDead,CumAgeDead,CumAgeRecovery,Time" << std::endl;
+		}
+		_sample++;
+		_statisticsFile << _sample << "," << _numSusceptible << "," << _numInfected << "," << _numRecovered << "," << _numDead << "," << _deadAge << ","
+			<< _recoveryAge << "," << GetSimulationTime() << std::endl;
+	}
+
+	// Prints Agent Info
+	void AgentTrackerStatistics(Agent * a);
+
+	// Resets all variables
+	void ResetSTAT() {
+		_numInfected = 0;
+		_numSusceptible = 0;
+		_numNonSusceptible = 0;
+		_numDead = 0;
+		_numRecovered = 0;
+		_deadAge = 0;
+		_recoveryAge = 0;
+	}
+
+	// Tracks recovery and whether that caused terminations
+	void AddRecovery(unsigned int age) {
+		_numRecovered++;
+		_recoveryAge += age;
+	}
+
+	void AddDeath(unsigned int age) {
+		_numDead++;
+		_deadAge += age;
+	}
+private:
+	static STAT* _instance;
+	STAT() {
+		_numInfected = 0;
+		_numSusceptible = 0;
+		_numNonSusceptible = 0;
+		_numDead = 0;
+		_numRecovered = 0;
+		_sample = 0;
+		_deadAge = 0;
+		_recoveryAge = 0;
+		//std::ofstream Environment::_SIRoutputCompress = std::ofstream("OutputData//SINs_outputCompress.txt");
+		//std::ofstream Environment::_SEIRoutputCompressed = std::ofstream("OutputData//SESRD_outputCompressed.txt");
+		_statisticsFile = std::ofstream("OutputData//Infection_Statistics.csv");
+		_agentTracker = std::ofstream("OutputData//AgentTrackerData.csv");
 	}
 };
 #endif

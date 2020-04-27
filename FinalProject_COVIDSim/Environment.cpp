@@ -4,18 +4,16 @@
 unsigned int Environment::_nextId = 0;
 //---------------ENV--------------------------
 bool Environment::_StatEventSch = false;
-std::ofstream Environment::_SIRoutputCompress = std::ofstream("OutputData//SINs_outputCompress.txt");
-std::ofstream Environment::_SEIRoutputCompressed = std::ofstream("OutputData//SESRD_outputCompressed.txt");
-std::ofstream Environment::_statisticsFile = std::ofstream("OutputData//Infection_Statistics.txt");
 
 // Agents arriving from another enviornment
 void Environment::Arrive(Agent* a)
 {
 	// Setting Random location in environment
 	Location coordinate;
-	coordinate._x = rand() % _domain._x; coordinate._y = rand() % _domain._y;
+	coordinate._x = rand() % _domain._x; coordinate._y = rand() % _domain._y; coordinate._envID = _id;
 	a->SetLocation(coordinate);
 
+	// Adding to Agent list
 	_agentList.AddAgent(a);
 }
 
@@ -24,9 +22,6 @@ void Environment::MoveAgents()
 {
 	_cellContainer.ResetLinkedList();
 	Location coordinate;
-	
-	// States
-	//Normal moveDist(0, 6.0f);
 
 	// Get first agent Node 
 	AgentContainer::Node* curr = _agentList.GetAgentHead();
@@ -45,20 +40,6 @@ void Environment::MoveAgents()
 			else
 				coordinate._y -= rand() % 5 * (int)_moveFrequency;
 
-			//else if (rand() % 4 == 2) {
-			//	// Calculating random movement
-			//}
-			//else if (rand() % 4 == 3) {
-			//	// Calculating random movement
-			//	coordinate._x -= rand() % 5 * (int)_moveFrequency;
-			//	coordinate._y += rand() % 5 * (int)_moveFrequency;
-			//}
-			//else {
-			//	// Calculating random movement
-			//	coordinate._x += rand() % 5 * (int)_moveFrequency;
-			//	coordinate._y -= rand() % 5 * (int)_moveFrequency;
-			//}
-
 			// Normalizing between Xmax and Ymax
 			int abs_x = abs((int)(_domain._x - (int)coordinate._x));
 			int abs_y = abs((int)(_domain._y - (int)coordinate._y));
@@ -73,17 +54,8 @@ void Environment::MoveAgents()
 			else
 				coordinate._y = abs_y - _domain._y;
 
-			//coordinate._x = abs((int)(moveDist.GetRV() + curr->_a->GetLocation()._x)) % _domain._x * _moveFrequency;
-			//coordinate._y = abs((int)(moveDist.GetRV() + curr->_a->GetLocation()._y)) % _domain._y * _moveFrequency;
-
-			/*coordinate._x = (rand() % _domain._x + curr->_a->GetLocation()._x) % _domain._x * _moveFrequency;
-			coordinate._y = (rand() % _domain._y + curr->_a->GetLocation()._y) % _domain._y * _moveFrequency;*/
-
 			curr->_a->SetLocation(coordinate);
 			_cellContainer.AddAgent(curr->_a);
-
-			PrintContentsOfEnvironment(curr->_a);
-
 			curr = curr->_next;
 		} while (curr != _agentList.GetAgentHead());
 	}
@@ -104,32 +76,6 @@ Environment * Environment::NextEnvironment()
 	}
 	else
 		return this;
-}
-
-void Environment::PrintContentsOfEnvironment(Agent* a)
-{
-	// Num
-	std::string lowLvl = a->GetLowLevelState();
-	int lowLvlInt;
-	if (lowLvl == "Susceptible")
-		lowLvlInt = 0;
-	else if (lowLvl == "Exposed")
-		lowLvlInt = 1;
-	else if (lowLvl == "Symptom")
-		lowLvlInt = 2;
-	else if (lowLvl == "Recovered")
-		lowLvlInt = 3;
-	else
-		lowLvlInt = 4;
-
-
-	_SIRoutputCompress << a->GetId() << "," << a->GetLocation()._x << "," << a->GetLocation()._y << "," << _id << "," << a->GetHighLevelState() << std::endl;
-
-	_SEIRoutputCompressed << a->GetId() << "," << a->GetLocation()._x << "," << a->GetLocation()._y << "," << _id << "," << a->GetHighLevelState() << "," << lowLvlInt << std::endl;
-
-	//_SEIRoutput << "| Agent" << setw(5) << a->GetId() << " | Age " << a->GetAge() << " | Location (x,y) = (" << setw(4) <<
-	//	a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(3) << _id << " | Low-Level-State " <<
-	//	a->GetLowLevelState() << endl;
 }
 
 // For Check Distance
@@ -331,12 +277,6 @@ void Environment::AgentContainer::AddAgent(Agent* a)
 			_tail = _head->_next;
 	}
 
-	if (_addRemoveStat) {
-		PrintAgents();
-		// Diplay Statistics
-		STAT::GetInstance()->printSIRTallySTAT(_env->_SIRoutputCompress);
-		STAT::GetInstance()->printSEIRTallySTAT(_env->_SEIRoutputCompressed);
-	}
 	// Scheduling when Agent Leaves
 	// If _agentInEnvDuration is null then this is a terminating environment
 	if(_agentInEnvDuration)
@@ -357,55 +297,37 @@ Agent* Environment::AgentContainer::RemoveAgent()
 		_head = nullptr;
 	}
 
-	if (_addRemoveStat) {
-		PrintAgents();
-		// Diplay Statistics
-		STAT::GetInstance()->printSIRTallySTAT(_env->_SIRoutputCompress);
-		STAT::GetInstance()->printSEIRTallySTAT(_env->_SEIRoutputCompressed);
-	}
-
 	_numAgents--;
 	return a;
 }
 
 void Environment::AgentContainer::CreateAgents(unsigned int numSusceptible, unsigned int numInfected, SusceptibleStateEvent* SuscepibleEvent, InfectedStateEvent* InfectedEvent)
 {
-	Agent* a;
 	Location coordinate;
+	auto randomLocation = [&]() { 
+		coordinate._x = rand() % _env->_domain._x; 
+		coordinate._y = rand() % _env->_domain._y;
+		coordinate._envID = _env->_id;
+		return coordinate;
+	};
+
+	Agent* a;
 	AgeVariant ageDistr;
 
-	if (numSusceptible > 0) {
-		// Susceptible
-		coordinate._x = rand() % _env->_domain._x; coordinate._y = rand() % _env->_domain._y; // randoming choosing location with in domain
-		a = DBG_NEW Agent(coordinate, SuscepibleEvent->New(), ageDistr.GetRV());
+	// Susceptible Agents
+	for (int i = 0; i < numSusceptible; i++) {
+		a = DBG_NEW Agent(randomLocation(), SuscepibleEvent->New(), ageDistr.GetRV());
 		if (_env->_cellResolution > 0)
 			_env->_cellContainer.AddAgent(a);
 		AddAgent(a);
-
-		for (int i = 1; i < numSusceptible; i++) {
-			coordinate._x = rand() % _env->_domain._x; coordinate._y = rand() % _env->_domain._y; // randoming choosing location with in domain
-			a = DBG_NEW Agent(coordinate, SuscepibleEvent->New(), ageDistr.GetRV());
-			if (_env->_cellResolution > 0)
-				_env->_cellContainer.AddAgent(a);
-			AddAgent(a);
-		}
 	}
 
 	// Infected
-	if (numInfected > 0) {
-		coordinate._x = rand() % _env->_domain._x; coordinate._y = rand() % _env->_domain._y; // randoming choosing location with in domain
-		a = DBG_NEW Agent(coordinate, InfectedEvent->New(), ageDistr.GetRV());
+	for (int i = 0; i < numInfected; i++) {
+		a = DBG_NEW Agent(randomLocation(), InfectedEvent->New(), ageDistr.GetRV());
 		if (_env->_cellResolution > 0)
 			_env->_cellContainer.AddAgent(a);
 		AddAgent(a);
-
-		for (int i = 1; i < numInfected; i++) {
-			coordinate._x = rand() % _env->_domain._x; coordinate._y = rand() % _env->_domain._y; // randoming choosing location with in domain
-			a = DBG_NEW Agent(coordinate, InfectedEvent->New(), ageDistr.GetRV());
-			if (_env->_cellResolution > 0)
-				_env->_cellContainer.AddAgent(a);
-			AddAgent(a);
-		}
 	}
 }
 
@@ -455,8 +377,8 @@ void Environment::CellLinkedList::AddAgent(Agent* a)
 	CellNode* newAgent = DBG_NEW CellNode(a);
 
 	// Finding cell location and getting head
-	unsigned int coln = a->GetLocation()._x / _env->_cellResolution;
-	unsigned int row = a->GetLocation()._y / _env->_cellResolution;
+	unsigned int coln = a->GetLocation()._x / (_env->_cellResolution + 1);
+	unsigned int row = a->GetLocation()._y / (_env->_cellResolution + 1);
 
 	_cellCounter[row][coln]++;
 
