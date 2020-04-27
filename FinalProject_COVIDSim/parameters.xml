@@ -2,19 +2,36 @@
 <objects>
   <!--The number of states the simulation is using-->
   <numStates num="5" ></numStates>
-  <!--States-->
+  
+  <!--States
+  State Name, #possible transitions from state, 
+  
+  (Indexs {i} start at 0 and increments until #possible transitions - 1)
+  next state (i) name, 
+  #Probability Parameters(i), {param(i)1, param(i)2, ... , param(i)N}, probability formula name (i), <-Used for the proability of transitions
+  #Varient Parameters(i), {param(i)1, param(i)2, ... , param(i)N}, distribution name (i), <-used for time delay between curr state and next state
+  
+  IF (i < #possible transitions)
+    LOOP FOR NEXT STATE
+  ELSE
+    DONE WITH STATE TRANSITION
+  -->
   <!--Susceptible State-->
-  <state name="Susceptible" numTransitions="1" nextState0="Exposed" 
+  <state name="Susceptible" numTransitions="1" 
+         
+         nextState0="Exposed" 
          numProbParam0="1" probParam00 ="0.25" probability0="Distance"
          numVariantParam0="1" varParam00="0" variant0="Constant"></state>
 
   <!--Exposed State-->  
-  <state name="Exposed" numTransitions="1" nextState0="Symptom" 
+  <state name="Exposed" numTransitions="1" 
+         
+         nextState0="Symptom" 
          numProbParam0="1" probParam00 ="1.0" probability0="Constant"
          numVariantParam0="3" varParam00="2" varParam01="5.2" varParam02="14" variant0="Triangular"></state>
 
   <!--Symptom-->
-  <state name="Symptom" numTransitions="1" 
+  <state name="Symptom" numTransitions="2" 
          
          nextState0="Recovered"
          numProbParam0="0" probability0="Recover"

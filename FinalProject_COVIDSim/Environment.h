@@ -1,6 +1,6 @@
 #ifndef ENV_H
 #define ENV_H
-#include "AgentState.h"
+#include "SINs.h"
 #include <time.h>       /* time */
 
 class Environment {
@@ -200,8 +200,8 @@ private:
 			}
 
 			// Diplay Statistics
-			STAT::GetInstance()->printSIRTallySTAT(_env->_SIRoutputCompress);
-			STAT::GetInstance()->printSEIRTallySTAT(_env->_SEIRoutputCompressed);
+			//STAT::GetInstance()->printSIRTallySTAT(_env->_SIRoutputCompress);
+			//STAT::GetInstance()->printSEIRTallySTAT(_env->_SEIRoutputCompressed);
 		}
 	private:
 		Environment* _env;

@@ -38,6 +38,7 @@
 #include "tinyxml2.h"
 #include <stdio.h>
 #include <string.h>
+#include "SINs.h"
 
 // Global Variables for Main
 const char* parameterFile = "parameters.xml"; 						// File with states and their transitions
@@ -86,7 +87,6 @@ bool Load(const char* filename)
 					const char* nextState;
 					pElem->QueryStringAttribute(std::string("nextState" + std::to_string(i)).c_str(), &nextState);
 					std::get<0>(transitionRow[i]) = nextState;
-					std::cout << std::get<0>(transitionRow[i]) << std::endl;
 
 					// Probability distribution
 					int numProbParam;
@@ -108,7 +108,7 @@ bool Load(const char* filename)
 					int numVariantParam;
 					pElem->QueryAttribute(std::string("numVariantParam" + std::to_string(i)).c_str(), &numVariantParam);
 					ProbabilityParameters distParam(numVariantParam);
-					for (int j = 0; j < numProbParam; j++) {
+					for (int j = 0; j < numVariantParam; j++) {
 						float temp;
 						pElem->QueryFloatAttribute(std::string("varParam" + std::to_string(i) + std::to_string(j)).c_str(), &temp);
 						distParam.AddParam(temp);
@@ -117,7 +117,7 @@ bool Load(const char* filename)
 					pElem->QueryStringAttribute(std::string("variant" + std::to_string(i)).c_str(), &VarName);
 					std::string VarNameStr = VarName;
 					// Setting Time Delay Distribution
-					std::get<2>(transitionRow[i]) = VariantMap.find(VarNameStr)->second->New(param);
+					std::get<2>(transitionRow[i]) = VariantMap.find(VarNameStr)->second->New(distParam);
 				}
 
 				// Setting Transition Row to StateMAP (state's name, its transition rows, and number of possible transitions)
@@ -180,7 +180,7 @@ void InitializeInfectionSimulation() {
 // Everyone interacting with eachother everyday
 void Application1() {
 	//for (int i = 0; i < 100; i++) {
-		DerivEnv e("Simulation", DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, 100, 1, 50, 50, 3, 1.0f);
+		DerivEnv e("Simulation", DBG_NEW SusceptibleStateEvent, DBG_NEW ExposedStateEvent, 100, 1, 3, 3, 3, 1.0f);
 		RunSimulation(100.0f);
 	//}
 }

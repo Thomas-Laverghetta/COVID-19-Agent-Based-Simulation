@@ -11,4 +11,9 @@ HomeEnvironment::HomeEnvironment(std::string name, SusceptibleStateEvent* initia
 void HomeEnvironment::EnvironmentProcess()
 {
 	_agentList.PrintAgents();
+
+
+	// Displaying tally
+	STAT::GetInstance()->printSIRTallySTAT(_SIRoutputCompress);
+	STAT::GetInstance()->printSEIRTallySTAT(_SEIRoutputCompressed);
 }

@@ -32,26 +32,46 @@ void Environment::MoveAgents()
 	AgentContainer::Node* curr = _agentList.GetAgentHead();
 	if (curr) {
 		do {
-			if (rand() % 4 == 1) {
+			coordinate = curr->_a->GetLocation();
+			if (rand() % 2 == 1) {
 				// Calculating random movement
-				coordinate._x = ((rand() % 5 + curr->_a->GetLocation()._x) * (int) _moveFrequency) % _domain._x;
-				coordinate._y = ((rand() % 5 + curr->_a->GetLocation()._y) * (int)_moveFrequency) % _domain._y ;
+				coordinate._x += rand() % 5 * (int) _moveFrequency;
 			}
-			else if (rand() % 4 == 2) {
-				// Calculating random movement
-				coordinate._x = (abs((int)(rand() % 5 - curr->_a->GetLocation()._x)) * (int)_moveFrequency) % _domain._x;
-				coordinate._y = (abs((int)(rand() % 5 - curr->_a->GetLocation()._y)) * (int)_moveFrequency)  % _domain._y;
-			}
-			else if (rand() % 4 == 3) {
-				// Calculating random movement
-				coordinate._x = (abs((int)(rand() % 5 - curr->_a->GetLocation()._x)) * (int)_moveFrequency) % _domain._x;
-				coordinate._y = ((int)(rand() % 5 + curr->_a->GetLocation()._y) * (int)_moveFrequency) % _domain._y;
-			}
-			else {
-				// Calculating random movement
-				coordinate._x = ((int)(rand() % 5 + curr->_a->GetLocation()._x) * (int)_moveFrequency) % _domain._x;
-				coordinate._y = (abs((int)(rand() % 5 - curr->_a->GetLocation()._y)) * (int)_moveFrequency) % _domain._y;
-			}
+			else
+				coordinate._x -= rand() % 5 * (int)_moveFrequency;
+
+			if (rand() % 2 == 1)
+				coordinate._y += rand() % 5 * (int)_moveFrequency;
+			else
+				coordinate._y -= rand() % 5 * (int)_moveFrequency;
+
+			//else if (rand() % 4 == 2) {
+			//	// Calculating random movement
+			//}
+			//else if (rand() % 4 == 3) {
+			//	// Calculating random movement
+			//	coordinate._x -= rand() % 5 * (int)_moveFrequency;
+			//	coordinate._y += rand() % 5 * (int)_moveFrequency;
+			//}
+			//else {
+			//	// Calculating random movement
+			//	coordinate._x += rand() % 5 * (int)_moveFrequency;
+			//	coordinate._y -= rand() % 5 * (int)_moveFrequency;
+			//}
+
+			// Normalizing between Xmax and Ymax
+			int abs_x = abs((int)(_domain._x - (int)coordinate._x));
+			int abs_y = abs((int)(_domain._y - (int)coordinate._y));
+
+			if (abs_x < _domain._x)
+				coordinate._x = _domain._x - abs_x;
+			else
+				coordinate._x = abs_x - _domain._x;
+			
+			if (abs_y < _domain._y)
+				coordinate._y = _domain._y - abs_y;
+			else
+				coordinate._y = abs_y - _domain._y;
 
 			//coordinate._x = abs((int)(moveDist.GetRV() + curr->_a->GetLocation()._x)) % _domain._x * _moveFrequency;
 			//coordinate._y = abs((int)(moveDist.GetRV() + curr->_a->GetLocation()._y)) % _domain._y * _moveFrequency;
@@ -88,9 +108,24 @@ Environment * Environment::NextEnvironment()
 
 void Environment::PrintContentsOfEnvironment(Agent* a)
 {
+	// Num
+	std::string lowLvl = a->GetLowLevelState();
+	int lowLvlInt;
+	if (lowLvl == "Susceptible")
+		lowLvlInt = 0;
+	else if (lowLvl == "Exposed")
+		lowLvlInt = 1;
+	else if (lowLvl == "Symptom")
+		lowLvlInt = 2;
+	else if (lowLvl == "Recovered")
+		lowLvlInt = 3;
+	else
+		lowLvlInt = 4;
+
+
 	_SIRoutputCompress << a->GetId() << "," << a->GetLocation()._x << "," << a->GetLocation()._y << "," << _id << "," << a->GetHighLevelState() << std::endl;
 
-	_SEIRoutputCompressed << a->GetId() << "," << a->GetLocation()._x << "," << a->GetLocation()._y << "," << _id << "," << a->GetHighLevelState() << "," << a->GetLowLevelState() << std::endl;
+	_SEIRoutputCompressed << a->GetId() << "," << a->GetLocation()._x << "," << a->GetLocation()._y << "," << _id << "," << a->GetHighLevelState() << "," << lowLvlInt << std::endl;
 
 	//_SEIRoutput << "| Agent" << setw(5) << a->GetId() << " | Age " << a->GetAge() << " | Location (x,y) = (" << setw(4) <<
 	//	a->GetLocation()._x << "," << setw(4) << a->GetLocation()._y << ") in Environment - " << setw(3) << _id << " | Low-Level-State " <<

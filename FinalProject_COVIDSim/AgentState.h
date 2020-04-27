@@ -7,7 +7,7 @@
 #include "Variant.h"
 #include "SimulationExecutive.h"
 #include <unordered_map>
-
+#include <vector>
 
 // Agents highlevel States
 enum SINs_States { Susceptible, Infected, NonSusceptible, Initialization };
@@ -433,195 +433,30 @@ public:
 	// Registering statesEvent
 	bool RegisterStateEvent(StateEvent * newRef){
 		// Registering stateEvent low-lvl name and ref to stateEvnet
-		_stateEventMap.emplace(newRef->GetLowLevelState(), newRef);
+		_stateEventMap.push_back(newRef);
 		return true;
 	}
 
 	StateEvent * GetStateEvent(std::string stateName){
-		// Finding event based on state name
-		std::unordered_map<std::string, StateEvent *>::const_iterator iter = _stateEventMap.find(stateName);
-		
-		// Error checking that user properly placed correct stateEvent low-lvl name
-		if (iter != _stateEventMap.end())
-			return iter->second;
-		else{ // if stateName was not found
-			std::cout << "\a ERROR Finding Event\n";
-			exit(0); // terminate program
-			return nullptr;
+		//// Finding event based on state name		
+		for (int j = 0; j < _stateEventMap.size(); j++)
+		{
+			if (_stateEventMap[j]->GetLowLevelState() == stateName)
+				return _stateEventMap[j];
 		}
+		// if stateName was not found
+		std::cout << "\a ERROR Finding Event\n";
+		exit(0); // terminate program
+		return nullptr;
 	}
 private:
 	static StateEventMap * _instance;
 	StateEventMap(){ }
 
 	// Map from stateEvent name to StateEvent ref
-	std::unordered_map<std::string, StateEvent *> _stateEventMap;
-
+	std::vector<StateEvent*> _stateEventMap;
 };
-StateEventMap * StateEventMap::_instance = nullptr;
 
-// SusceptibleStateEvents
-class SusceptibleStateEvent : public StateEvent {
-public:
-	SusceptibleStateEvent() { 
-		_a = nullptr; 
-		_highLevelState = Susceptible;
-		_lowLevelState = "Susceptible";
-		_stateStat = &STAT::GetInstance()->_numSusceptible;
-	}
-
-	SusceptibleStateEvent(Agent* a) { 
-		_a = a; 
-		_highLevelState = Susceptible;
-		_lowLevelState = "Susceptible";
-		_stateStat = &STAT::GetInstance()->_numSusceptible;
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW SusceptibleStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW SusceptibleStateEvent; }
-
-	virtual void StateSpecificProcess();
-
-	virtual bool StateInteractionProcess(Parameter* list);
-
-	static bool SusceptibleRegister;
-};
-// Registers StateEvent
-bool SusceptibleStateEvent::SusceptibleRegister = StateEventMap::GetInstance()->RegisterStateEvent(new SusceptibleStateEvent);
-
-// InfectedStateEvents
-class InfectedStateEvent : public StateEvent {
-public:
-	InfectedStateEvent() { 
-		_a = nullptr;  
-		_highLevelState = Infected;
-		_lowLevelState = "Infected";
-		_stateStat = &STAT::GetInstance()->_numInfected;
-	}
-
-	InfectedStateEvent(Agent* a) { 
-		_a = a;
-		_highLevelState = Infected;
-		_lowLevelState = "Infected";
-		_stateStat = &STAT::GetInstance()->_numInfected;
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW InfectedStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW InfectedStateEvent; }
-
-	virtual void StateSpecificProcess();
-
-	static bool InfectedRegister;
-};
-bool InfectedStateEvent::InfectedRegister = StateEventMap::GetInstance()->RegisterStateEvent(new InfectedStateEvent);
-
-// APPLICATION
-class ExposedStateEvent : public InfectedStateEvent {
-public:
-	ExposedStateEvent() {
-		_lowLevelState = "Exposed";
-	}
-
-	ExposedStateEvent(Agent* a) : InfectedStateEvent{ a } {
-		_lowLevelState = "Exposed";
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW ExposedStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW ExposedStateEvent; }
-
-private:
-	static bool ExposedRegister;
-};
-bool ExposedStateEvent::ExposedRegister = StateEventMap::GetInstance()->RegisterStateEvent(new ExposedStateEvent);
-
-class SymptomStateEvent : public InfectedStateEvent {
-public:
-	SymptomStateEvent() {
-		_lowLevelState = "Symptom";
-	}
-
-	SymptomStateEvent(Agent* a) : InfectedStateEvent{ a } {
-		_lowLevelState = "Symptom";
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW SymptomStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW SymptomStateEvent; }
-	
-	// Application
-	virtual bool StateInteractionProcess(Parameter* list);
-
-private:
-	static bool SymptomRegister;
-};
-bool SymptomStateEvent::SymptomRegister = StateEventMap::GetInstance()->RegisterStateEvent(new SymptomStateEvent);
-
-// NonSusceptibleStateEvents
-class NonSusceptibleStateEvent : public StateEvent {
-public:
-	NonSusceptibleStateEvent() {
-		_a = nullptr;
-		_highLevelState = NonSusceptible;
-		_lowLevelState = "NonSusceptible";
-		_stateStat = &STAT::GetInstance()->_numNonSusceptible;
-	}
-
-	NonSusceptibleStateEvent(Agent* a) { 
-		_a = a;
-		_highLevelState = NonSusceptible;
-		_lowLevelState = "NonSusceptible";
-		_stateStat = &STAT::GetInstance()->_numNonSusceptible;
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW NonSusceptibleStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW NonSusceptibleStateEvent; }
-
-	virtual void StateSpecificProcess();
-
-private:
-	static bool NonSusceptibleRegister;
-}; 
-bool NonSusceptibleStateEvent::NonSusceptibleRegister = StateEventMap::GetInstance()->RegisterStateEvent(new NonSusceptibleStateEvent);
-
-// APPLICATION
-class RecoveredStateEvent : public NonSusceptibleStateEvent {
-public:
-	RecoveredStateEvent() {
-		_lowLevelState = "Recovered";
-	}
-
-	RecoveredStateEvent(Agent* a) : NonSusceptibleStateEvent{ a } {
-		_lowLevelState = "Recovered";
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW RecoveredStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW RecoveredStateEvent; }
-
-	// Application
-	virtual bool StateInteractionProcess(Parameter* list);
-
-	static bool RecoveredRegister;
-};
-bool RecoveredStateEvent::RecoveredRegister = StateEventMap::GetInstance()->RegisterStateEvent(new RecoveredStateEvent);
-
-class DeadStateEvent : public NonSusceptibleStateEvent {
-public:
-	DeadStateEvent() {
-		_lowLevelState = "Dead";
-	}
-
-	DeadStateEvent(Agent* a) : NonSusceptibleStateEvent{ a } {
-		_lowLevelState = "Dead";
-	}
-
-	virtual AgentStateEventAction* New(Agent* a) { return DBG_NEW DeadStateEvent(a); }
-	virtual AgentStateEventAction* New() { return DBG_NEW DeadStateEvent; }
-
-	// Application
-	virtual bool StateInteractionProcess(Parameter* list);
-
-	static bool DeadRegister;
-};
-bool DeadStateEvent::DeadRegister = StateEventMap::GetInstance()->RegisterStateEvent(new DeadStateEvent);
 
 // State Mapping
 class StateMap {

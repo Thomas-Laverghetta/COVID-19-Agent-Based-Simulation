@@ -42,6 +42,9 @@
     <ClCompile Include="Probability.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SINs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SimulationExecutive.h">
@@ -69,6 +72,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Probability.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SINs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

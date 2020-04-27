@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AgentState.cpp" />
+    <ClCompile Include="SINs.cpp" />
     <ClCompile Include="DerivEnv.cpp" />
     <ClCompile Include="Probability.cpp" />
     <ClCompile Include="Variant.cpp" />
@@ -154,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgentState.h" />
+    <ClInclude Include="SINs.h" />
     <ClInclude Include="DerivEnv.h" />
     <ClInclude Include="Probability.h" />
     <ClInclude Include="Variant.h" />
